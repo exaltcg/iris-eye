@@ -1,0 +1,106 @@
+@using IrisEye.Core.Entities
+@using IrisEye.Data.Extensions
+@using Microsoft.EntityFrameworkCore.Internal
+@model FailedTestsViewModel
+
+<table id="failedtests-table" style="font-size: 10px" class="table table-sm table-bordered table-striped table-hover">
+    <thead>
+    <tr>
+        <th>Suite</th>
+        <th>Author</th>
+        <th>Name</th>
+        <th>Status</th>
+        <th>OSX</th>
+        <th>Linux</th>
+        <th>Win 10</th>
+        <th>Win 7</th>
+    </tr>
+    </thead>
+    <tbody>
+    @foreach (var item in Model.FailedTests.OrderBy(p=>p.Suite))
+    {
+        <tr class="test-selector" style="cursor: pointer" data-testid="@item.TestId" data-title="@item.Name">
+            <td>
+                @item.Suite
+            </td>
+            <td>
+                @item.Author
+            </td>
+
+            <td>
+                @item.Name.TrimLimit(50)
+            </td>
+            <td>@(item.AnalysisResult==null?"Not Analyzed":item.AnalysisResult?.AnalysisStatus.GetDescription() + " by: " + item.AnalysisResult?.By?.Name)</td>
+            <td>
+                @switch (item.Osx)
+                {
+                    case TestStatus.Passed:
+                        <i class="far fa-check-circle text-success"></i>
+                        break;
+                    case TestStatus.Failed:
+                        <i class="far fa-times-circle text-danger"></i>
+                        break;
+                    case TestStatus.Error:
+                        <i class="far fa-times-circle text-warning"></i>
+                        break;
+                    case TestStatus.Unidentified:
+                        <i class="fas fa-exclamation-triangle"></i>
+                        break;
+                }
+            </td>
+            <td>
+                @switch (item.Linux)
+                {
+                    case TestStatus.Passed:
+                        <i class="far fa-check-circle text-success"></i>
+                        break;
+                    case TestStatus.Failed:
+                        <i class="far fa-times-circle text-danger"></i>
+                        break;
+                    case TestStatus.Error:
+                        <i class="far fa-times-circle text-warning"></i>
+                        break;
+                    case TestStatus.Unidentified:
+                        <i class="fas fa-exclamation-triangle"></i>
+                        break;
+                }
+            </td>
+            <td>
+                @switch (item.Win10)
+                {
+                    case TestStatus.Passed:
+                        <i class="far fa-check-circle text-success"></i>
+                        break;
+                    case TestStatus.Failed:
+                        <i class="far fa-times-circle text-danger"></i>
+                        break;
+                    case TestStatus.Error:
+                        <i class="far fa-times-circle text-warning"></i>
+                        break;
+                    case TestStatus.Unidentified:
+                        <i class="fas fa-exclamation-triangle"></i>
+                        break;
+                }
+            </td>
+            <td>
+                @switch (item.Win7)
+                {
+                    case TestStatus.Passed:
+                        <i class="far fa-check-circle text-success"></i>
+                        break;
+                    case TestStatus.Failed:
+                        <i class="far fa-times-circle text-danger"></i>
+                        break;
+                    case TestStatus.Error:
+                        <i class="far fa-times-circle text-warning"></i>
+                        break;
+                    case TestStatus.Unidentified:
+                        <i class="fas fa-exclamation-triangle"></i>
+                        break;
+                }
+            </td>
+
+        </tr>
+    }
+    </tbody>
+</table>

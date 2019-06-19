@@ -1,0 +1,153 @@
+@using IrisEye.Data.Extensions
+@using IrisEye.Web.Enums
+@model TestLabStatisticsViewModel
+
+@{
+    ViewBag.Title = "Test Lab statistics";
+    Layout = "_Layout";
+}
+
+<div class="container-fluid flex-grow-1 container-p-y">
+
+    <h4 class="d-flex justify-content-between align-items-center w-100 font-weight-bold py-3 mb-4">
+        <ol class="breadcrumb font-weight-bold m-0">
+            <li class="breadcrumb-item"><a asp-action="Index" asp-controller="TestLab">Test Lab</a></li>
+            <li class="breadcrumb-item active">Statistics</li>
+        </ol>
+ 
+        @*<div class="btn-group">
+            <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-expanded="false">@Model.Period.GetDescription()</button>
+            <div class="dropdown-menu" x-placement="bottom-start" style="position: absolute; will-change: top, left; top: 38px; left: 0px;">
+                @foreach (var period in (StatisticsPeriod[]) Enum.GetValues(typeof(StatisticsPeriod)))
+                {
+                    <a class="dropdown-item" asp-controller="TestLab" asp-action="Statistics" asp-route-filter="@Model.Filter" asp-route-period="@((int)period)">@period.GetDescription()</a>
+                }
+            </div>
+        </div>*@
+        @* <a asp-action="ImportIssues" class="btn btn-primary btn-round d-block"><span class="ion ion-md-add"></span>&nbsp; Import new test suite</a> *@
+    </h4>
+    
+    <div class="row">
+        <div class="col-sm-6 col-xl-3">
+            <div style="cursor: pointer" data-redirect="@Url.Action("Statistics", "TestLab", new {@period=(int)Model.Period})" class="card mb-4 redirect-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-3x fa-copy text-default"></i>
+                        <div class="ml-3">
+                            <div class="small @(Model.Filter==null?"font-weight-bold":"text-muted ")">Total tests</div>
+                            <div class="text-large">@Model.TotalTests</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        
+        <div class="col-sm-6 col-xl-3">
+
+            <div style="cursor: pointer" data-redirect="@Url.Action("Statistics", "TestLab", new {@filter="ip", @period=(int)Model.Period})" class="card mb-4 redirect-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-3x fa-forward text-warning"></i>
+                        <div class="ml-3">
+                            <div class="@(Model.Filter=="ip"?"font-weight-bold":"text-muted ") small">Tests in-progress</div>
+                            <div class="text-large">@Model.TestsInProgress</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div style="cursor: pointer" data-redirect="@Url.Action("Statistics", "TestLab", new {@filter="ar", @period=(int)Model.Period})" class="card mb-4 redirect-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <i class="fab fa-3x fa-searchengin text-primary"></i>
+                        <div class="ml-3">
+                            <div class="@(Model.Filter=="ar"?"font-weight-bold":"text-muted ") small">Awaiting review</div>
+                            <div class="text-large">@Model.AwaitingReview</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        <div class="col-sm-6 col-xl-3">
+
+            <div style="cursor: pointer" data-redirect="@Url.Action("Statistics", "TestLab", new {@filter="am", @period=(int)Model.Period})" class="card mb-4 redirect-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-3x fa-check-double text-success"></i>
+                        <div class="ml-3">
+                            <div class="@(Model.Filter=="am"?"font-weight-bold":"text-muted ") small">Awaiting merge</div>
+                            <div class="text-large">@Model.AwaitingMerge</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col">
+            <div class="card mb-4">
+                <h6 class="card-header with-elements">
+                    <div class="card-header-title">Tests</div>
+                </h6>
+                <div class="card-datatable table-responsive">
+                    <table class="table card-table table-sm table-striped" style="font-size: 12px;">
+                        <thead>
+                        <tr>
+                            <th>Test</th>
+                            <th>Suite</th>
+                            <th>Status</th>
+                            <th>Assignee</th>
+                            <th>Reviewer</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var test in Model.Tests)
+                        {
+                            <tr>
+                                <td>
+                                    <a class="badge badge-outline-@(test.IsIssue?"danger":"success")" target="_blank" href="https://github.com/mozilla/iris/issues/@test.GitHubId"><i class="icon ion-logo-github"></i> @test.GitHubId</a>
+                                    <a asp-controller="TestLab" asp-action="TestCase" asp-route-id="@test.Id">@test.Name</a>
+                                </td>
+                                <td><a asp-controller="TestLab" asp-action="TestSuite" asp-route-id="@test.TestSuite.Id">@test.TestSuite.Name</a></td>
+                                <td>
+                                    @if (test.MergedDate.HasValue)
+                                    {
+                                        <span class="text-success">Merged</span>
+                                    } else {                               
+                                        @test.Status.GetDescription()
+                                    }
+                                </td>
+                                <td><a asp-action="Profile" asp-controller="Auth" asp-route-id="@test.Assignee?.Id">@test.Assignee?.Name</a></td>
+                                <td><a asp-action="Profile" asp-controller="Auth" asp-route-id="@test.Reviewer?.Id">@test.Reviewer?.Name</a></td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+</div>
+
+<script type="text/javascript">
+    $(document).ready(function() {
+
+        $('.redirect-card').click(function() {
+            var url = $(this).data("redirect");
+            window.location = url;
+        });
+        
+
+        $('.table').dataTable({
+            order: []
+        });
+
+    });
+</script>

@@ -1,0 +1,22 @@
+<script src="~/lib/jquery-validation/dist/jquery.validate.js"></script>
+<script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.js"></script>
+<script>
+    $(function () {
+        var errorClass = 'is-invalid';
+        var validClass = 'is-valid';
+
+        $('form').each(function() {
+            var validator = $(this).data('validator');
+            if (validator) {
+                validator.settings.highlight = function (element) {
+                    $(element).addClass(errorClass).removeClass(validClass);
+
+                };
+                validator.settings.unhighlight = function (element) {
+                    $(element).removeClass(errorClass).addClass(validClass);
+
+                };
+            }
+        });
+    });
+</script>

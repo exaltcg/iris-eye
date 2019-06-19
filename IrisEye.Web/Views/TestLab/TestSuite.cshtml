@@ -1,0 +1,145 @@
+@using IrisEye.Core.Entities
+@using IrisEye.Data.Extensions
+@using IrisEye.Web.Utils
+@using Microsoft.AspNetCore.Identity
+@model IrisEye.Core.Entities.TestSuite
+
+@{
+    ViewBag.Title = $@"Suite[{Model.Name}]";
+    Layout = "_Layout";
+}
+
+<style>
+    .isDisabled {
+        color: currentColor;
+        cursor: progress;
+        opacity: 0.5;
+        text-decoration: none;
+        pointer-events: none;
+    }
+</style>
+<div class="container-fluid flex-grow-1 container-p-y">
+
+    <h4 class="py-3 mb-4">
+        <ol class="breadcrumb font-weight-bold m-0">
+            <li class="breadcrumb-item"><a asp-action="Index" asp-controller="TestLab">Test Lab</a></li>
+            <li class="breadcrumb-item active">@Model.Name</li>
+        </ol>
+    </h4>
+    
+    @{
+        var inProgress = Model.TestCases.Count(p => p.Status == Status.InProgress 
+                                                        || p.Status==Status.ReviewStarted 
+                                                        || p.Status==Status.ReadyForReview
+                                                        || p.Status == Status.ToCrossPlatform);
+        var closed = Model.TestCases.Count(p => p.Status == Status.Closed);
+        var total = Model.TestCases.Count(p => p.Status != Status.CannotAutomate);
+        var completed = Model.TestCases.Count(p => p.Status == Status.Finished) + closed;
+        var cannotAutomate = Model.TestCases.Count(p => p.Status == Status.CannotAutomate);
+        var percentage = total==0?0 : Math.Round((((decimal) completed) / (total)) * 100);
+        var state = "";
+        var stateClass = "";
+        if (completed == total)
+        {
+            state = "Completed";
+            stateClass = "primary";
+        } else if (inProgress == 0 && completed == 0)
+        {
+            state = "New";
+            stateClass = "default";
+        }
+        else
+        {
+            state = "Active";
+            stateClass = "success";
+        }
+                                            
+    }
+    
+    <!-- Header -->
+    <div class="border-right-0 border-left-0 ui-bordered container-m--x mb-4">
+        <div class="row no-gutters row-bordered row-border-light">
+            <div class="col-md-9">
+                <div class="media-body container-p-x py-4">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <div><strong class="text-primary text-large">@percentage%</strong> completed</div>
+                        <div class="text-muted small">@total total, @inProgress in progress, @completed completed, @cannotAutomate cannot automate</div>
+                    </div>
+                    <div class="progress" style="height: 4px;">
+                        <div class="progress-bar" style="width: @percentage%;"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="container-p-x py-4">
+                    <div class="text-muted small">Status</div>
+                    <strong class="text-@stateClass text-big">@state</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- / Header -->
+    
+    <div class="card">
+        <h6 class="card-header with-elements">
+            Test cases 
+            <div class="card-header-elements ml-md-auto">
+                <a asp-action="ImportIssues" asp-controller="TestLab" asp-route-testSuiteId="@Model.Id" class="btn btn-xs btn-outline-primary">
+                    <span class="ion ion-md-add"></span> Add</a>
+                <a id="refresh-issues" asp-action="RefreshIssues" asp-controller="TestLab" asp-route-id="@Model.Id" class="btn btn-xs btn-outline-primary">
+                    <span class="ion ion-md-refresh"></span> Refresh</a>
+
+            </div>
+        </h6>
+        <div class="card-datatable table-responsive table-sm">
+            <table style="font-size: 12px" id="test-suits" class="table table-striped table-bordered">
+                <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Status</th>
+                    <th>Assignee</th>
+                    <th>Reviewer</th>
+                    <th>Started</th>
+                    <th>Finished</th>
+                    <th>Merged</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var test in Model.TestCases.OrderBy(p=>p.GitHubId))
+                {
+                    @await Html.PartialAsync("_TestSuiteRowPartial", test);
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+</div>
+
+<script type="text/javascript">
+    $(document).ready(function() {
+
+        $('#test-suits').dataTable({
+            order: [],
+            pageLength: 50
+        });
+        
+        $('#refresh-issues').on('click', 
+            function (event) {
+                $('#refresh-issues').addClass("isDisabled");
+                $('#refresh-issues').block({
+                    message: '<div class="sk-wave sk-primary"><div class="sk-rect sk-rect1"></div> <div class="sk-rect sk-rect2"></div> <div class="sk-rect sk-rect3"></div> <div class="sk-rect sk-rect4"></div> <div class="sk-rect sk-rect5"></div></div>',
+                    css: {
+                        backgroundColor: 'transparent',
+                        border: '0'
+                    },
+                    overlayCSS:  {
+                        backgroundColor: '#fff',
+                        opacity: 0.8
+                    }
+                });
+            }); 
+
+    });
+   
+</script>

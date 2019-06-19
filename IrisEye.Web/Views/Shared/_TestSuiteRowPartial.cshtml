@@ -1,0 +1,49 @@
+@using IrisEye.Core.Entities
+@using IrisEye.Data.Extensions
+@using IrisEye.Web.Utils
+@model IrisEye.Core.Entities.TestCase
+
+
+<tr id="test-@Model.Id">
+    <td>
+        <a class="badge badge-outline-@(Model.IsIssue?"danger":"success")" target="_blank" href="https://github.com/mozilla/iris/issues/@Model.GitHubId"><i class="icon ion-logo-github"></i> @Model.GitHubId</a>
+        <a asp-action="TestCase" asp-controller="TestLab" asp-route-id="@Model.Id">@Model.Name</a>
+    </td>
+    <td class="justify-content-center align-self-center text-center">
+        @if (User.Identity.IsAuthenticated)
+        {
+
+            @await Html.PartialAsync("_SwitchStateDropDownPartial", Model)
+        }
+        else
+        {
+            <text>@Model.Status.GetDescription()</text>
+        }
+
+    </td>
+    <td><a asp-action="Profile" asp-controller="Auth" asp-route-id="@Model.Assignee?.Id">@Model.Assignee?.Name</a></td>
+    <td><a asp-action="Profile" asp-controller="Auth" asp-route-id="@Model.Reviewer?.Id">@Model.Reviewer?.Name</a></td>
+    <td>
+        @if (Model.StartedOn != DateTime.MinValue)
+        {
+            <text>@Model.StartedOn</text>
+        }
+    </td>
+    <td>
+        @if (Model.FinishedOn != DateTime.MinValue)
+        {
+            <text>@Model.FinishedOn</text>
+        }
+
+    </td>
+    <td class="justify-content-center align-self-center text-center">
+        @if (!Model.MergedDate.HasValue)
+        {
+            <i style="font-size: 15px" class="text-danger ion ion-ios-close-circle"></i>
+        }
+        else
+        {
+            <i style="font-size: 15px" class="text-success ion ion-md-checkmark-circle"></i>
+        }
+    </td>
+</tr>

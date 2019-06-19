@@ -1,0 +1,160 @@
+@using IrisEye.Core.Entities
+@using IrisEye.Data.Extensions
+@using IrisEye.Web.Migrations
+@using LibGit2Sharp
+@model AnalyzeTestViewModel
+
+@{
+    ViewBag.Title = $@"Analyze test [{Model.Test.Name}]";
+    Layout = "_Layout";
+}
+
+
+<div class="container-fluid flex-grow-1 container-p-y">
+
+    <h4 class="font-weight-bold py-3 mb-4">
+        <span class="text-muted font-weight-light">Results explorer /</span> <a asp-controller="ResultsExplorer" asp-action="Index" asp-route-id="@Model.Run.Id">@Model.Run.Environment.ConvertEnvironment() (@Model.Run.ReportTime)</a> / Analysis of @Model.Test.Name
+    </h4>
+    
+    @await Html.PartialAsync("_ResultsExplorerTestPartial", Model.Test)
+    
+
+    @if(Model.SelectedStepId.HasValue)
+    {
+        if (User.Identity.IsAuthenticated && ((SystemUser) ViewBag.user).GitHubToken != null)
+        {
+            if (Model.Test.Steps.Any(p => p.StepAnalysisItems.Count != 0))
+            {
+                var item = Model.Test.Steps.FirstOrDefault(p => p.StepAnalysisItems.Count != 0)?.StepAnalysisItems.FirstOrDefault();
+                <p>Status: @item?.AnalysisResolution.GetDescription()</p>
+                <p>Details: @Html.Raw(item?.Message.Replace("\n", "<br>"))</p>                                                        
+            } else {
+            <div class="card mb-4">
+                <h6 class="card-header with-elements">
+                    <span class="card-header-title mr-2">Set analysis status</span>
+                </h6>
+                <div class="card-body">
+                    <form id="cr-new-issue" method="post" asp-action="AnalyzeTest">
+                        <input type="hidden" asp-for="SelectedStepId"/>
+                        <input type="hidden" asp-for="TestId"/>
+                        <input id="message-template" type="hidden" value="@Model.Message"/>
+                        <input id="message-new-issue" type="hidden" value="@Model.NewIssueMessage"/>
+                        <input id="message-known-issue" type="hidden" value="@Model.KnownIssueMessage"/>
+                        <input id="message-template" type="hidden" value="@Model.Message"/>
+                        <div class="form-group row">
+                            <label class="col-form-label col-sm-2 text-sm-right">Resolution</label>
+                            <div class="col-sm-10">
+                                <select id="resolution" class="custom-select" asp-for="SelectedResolutionId" asp-items="@Model.Resolutions">
+
+                                </select>
+                            </div>
+                        </div>
+                        <div id="already-exists-switch" class="form-group row">
+                            <label class="col-form-label col-sm-2 text-sm-right">Issue already exists</label>
+                            <div class="col-sm-10">
+                                <label class="switcher switcher-sm mr-0">
+                                    <input id="check-existing-issue" type="checkbox" class="switcher-input" asp-for="IsExistingIssue">
+                                    <span class="switcher-indicator">
+                                        <span class="switcher-yes"></span>
+                                        <span class="switcher-no"></span>
+                                    </span>
+                                </label>
+
+                            </div>
+                        </div>
+                        <div id="suits-list" class="form-group row">
+                            <label class="col-form-label col-sm-2 text-sm-right">Test Suite</label>
+                            <div class="col-sm-10">
+                                <select class="custom-select" asp-for="SelectedSuiteId" asp-items="@Model.TestSuitsModel">
+
+                                </select>
+                            </div>
+                        </div>
+                        <div id="existing-id" style="display: none" class="form-group row">
+                            <label class="col-form-label col-sm-2 text-sm-right">Issue Id</label>
+                            <div class="col-sm-10">
+                                <input type="number" class="form-control" asp-for="ExistingIssueId">
+                            </div>
+                        </div>
+                        <div id="title" class="form-group row">
+                            <label asp-for="Title" class="col-form-label col-sm-2 text-sm-right"></label>
+                            <div class="col-sm-10">
+                                <input type="text" class="form-control" asp-for="Title">
+                            </div>
+                        </div>
+                        <div id="message" class="form-group row">
+                            <label class="col-form-label col-sm-2 text-sm-right" asp-for="Message"></label>
+                            <div class="col-sm-10">
+                                @{
+                                    var failedStep = Model.Test.Steps.FirstOrDefault(p => !p.IsPassed);}
+                                <textarea id="message-area" rows="5" type="text" class="form-control" asp-for="Message">test</textarea>
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="col-sm-10 ml-sm-auto">
+                                <button type="submit" class="btn btn-primary">Submit</button>
+                            </div>
+                        </div>
+                    </form>  
+                </div>
+            </div>
+            }
+        }
+        else
+        {
+            <div class="alert alert-warning mt-3">
+                Your Iris Eye account is not linked to your GitHub account. To enable analysis feature, please update your GitHub credentials information at <br>
+                <a asp-controller="Auth" asp-action="Account">Account Settings</a>
+            </div>
+
+        }
+
+    }
+
+</div>
+
+<script>
+    $('#check-existing-issue').change(function() {
+        if ($(this).is(":checked")) {
+            $("#existing-id").show();
+            $("#title").hide();
+            $("#suits-list").hide();
+        } else {
+            $("#existing-id").hide();
+            $("#title").show();
+            $("#suits-list").show();
+        }
+    }); 
+    
+    $('#resolution').on('change', function() {
+        switch(this.value) {
+        case "0":
+            var message = $("#message-template").val();
+            $("#already-exists-switch").show();
+            $('#check-existing-issue').prop('checked', false);
+            $("#existing-id").hide();
+            $("#title").show();
+            $("#suits-list").show();
+            $("#message").show();
+            $("#message-area").text(message);
+            break;
+        case "1":
+            $("#already-exists-switch").hide();
+            $("#existing-id").show();
+            $("#title").hide();
+            $("#suits-list").hide();
+            $("#message-area").text($("#message-known-issue").val());
+            break;
+        case "2":
+            $("#already-exists-switch").hide();
+            $("#existing-id").hide();
+            $('#check-existing-issue').prop('checked', false);
+            $("#title").show();
+            $("#message").show();
+            $("#message-area").text("");
+            $("#suits-list").show();
+            $("#message-area").text($("#message-new-issue").val());
+            break;
+        }
+    });
+</script>

@@ -1,0 +1,51 @@
+@using IrisEye.Core.Entities
+@model SubmitTestForReviewViewModel
+
+@{
+    ViewBag.Title = "Submit test for review";
+    Layout = "_Layout";
+}
+
+<div class="container-fluid flex-grow-1 container-p-y">
+
+    <h4 class="py-3 mb-4">
+        <ol class="breadcrumb font-weight-bold m-0">
+            <li class="breadcrumb-item"><a asp-action="Index" asp-controller="TestLab">Test Lab</a></li>
+            <li class="breadcrumb-item"><a asp-action="TestCase" asp-controller="TestLab" asp-route-id="@Model.TestId">@Model.TestName</a></li>
+            <li class="breadcrumb-item active">Submit for review</li>
+        </ol>
+    </h4>
+    
+    <div class="card mb-4">
+        <h6 class="card-header">
+            Attach Pull Request
+        </h6>
+        <div class="card-body">
+            <div asp-validation-summary="ModelOnly" class="alert alert-dark-danger alert-dismissible fade show" role="alert">Errors occured:</div>
+            <form asp-action="SubmitForReview" method="post">
+                <input type="hidden" asp-for="TestId"/>
+                <div class="form-group">
+                    <label asp-for="PullRequestId" class="form-label"></label>
+                    <input asp-for="PullRequestId" type="number" class="form-control" placeholder="Project ID">
+                    <span style="font-size: 10px" asp-validation-for="PullRequestId" class="invalid-feedback"></span>
+                </div>  
+                <button type="submit" class="btn btn-primary">Submit</button>
+                @if (string.IsNullOrEmpty(((SystemUser) ViewBag.user).GitHubToken)) 
+                {
+                    <div class="alert alert-warning mt-3">
+                        Your account is not synced with GitHub, navigate to your profile setting and add GitHub token<br>
+                        <a asp-action="Account" asp-controller="Auth">Open profile</a>
+                    </div>
+                    <button class="btn btn-warning" disabled>Create New Pull Request</button>
+                } else {
+                    <a asp-action="CreateNewPullRequest" asp-controller="TestLab" asp-route-id="@Model.TestId" class="btn btn-warning">Create New Pull Request</a>
+                }
+            </form>
+        </div>
+    </div>
+    
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

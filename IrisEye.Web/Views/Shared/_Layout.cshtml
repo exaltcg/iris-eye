@@ -1,0 +1,371 @@
+﻿@using Humanizer
+@using IrisEye.Core.Entities
+@using IrisEye.Data.Extensions
+@using Microsoft.AspNetCore.Http
+@using Microsoft.EntityFrameworkCore.Internal
+@{
+    string currentPage = Context.Request.Path;
+    SystemUser currentSystemUser = ViewBag.user;
+    var runs = (List<Run>) ViewBag.runs;
+    runs = runs.Where(p => p.ReportTime >= DateTime.Now.AddDays(-14)).ToList();
+}
+<!DOCTYPE html>
+
+<html lang="en" class="material-style layout-offcanvas @ViewBag.isCollapsed">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="IE=edge,chrome=1">
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+
+    <!-- Google Tag Manager -->
+    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+        new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+        j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+        'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','GTM-NPWKDKB');</script>
+    <!-- End Google Tag Manager -->
+    
+    <title>IRIS Eye:@ViewData["Title"]</title>
+    <link rel="shortcut icon" type="image/x-icon" href="~/assets/eye-icon.png"/>
+
+    <!-- Main font -->
+    <link href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,500,500i,700,700i,900" rel="stylesheet">
+
+    <!-- Icons. Uncomment required icon fonts -->
+    <link rel="stylesheet" href="~/assets/vendor/fonts/fontawesome.css">
+    <link rel="stylesheet" href="~/assets/vendor/fonts/ionicons.css">
+    <!-- <link rel="stylesheet" href="~/assets/vendor/fonts/linearicons.css"> -->
+    <!-- <link rel="stylesheet" href="~/assets/vendor/fonts/open-iconic.css"> -->
+    <!-- <link rel="stylesheet" href="~/assets/vendor/fonts/pe-icon-7-stroke.css"> -->
+
+    <!-- Core stylesheets -->
+    <link rel="stylesheet" href="~/assets/vendor/css/bootstrap.css">
+    <link rel="stylesheet" href="~/assets/vendor/css/appwork.css">
+    <link rel="stylesheet" href="~/assets/vendor/css/theme-corporate.css">
+    <link rel="stylesheet" href="~/assets/vendor/css/colors.css">
+    <link rel="stylesheet" href="~/assets/vendor/css/uikit.css">
+    <link rel="stylesheet" href="~/assets/vendor/libs/datatables/datatables.css">
+    <link rel="stylesheet" href="~/js/highlight/styles/default.css">
+    <link rel="stylesheet" href="~/assets/vendor/libs/spinkit/spinkit.css">
+    <link rel="stylesheet" href="~/assets/css/demo.css">
+    <link rel="stylesheet" href="~/assets/vendor/libs/flot/flot.css">
+    <link rel="stylesheet" href="~/assets/vendor/libs/spinkit/spinkit.css">
+
+
+
+    <!-- Layout helpers -->
+    <script src="~/assets/vendor/js/layout-helpers.js"></script>
+
+    <!-- Libs -->
+
+    <link rel="stylesheet" href="~/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css">
+    
+    <!-- Core scripts -->
+    <script src="~/assets/vendor/js/pace.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <script src="~/assets/vendor/libs/popper/popper.js"></script>
+    <script src="~/assets/vendor/js/bootstrap.js"></script>
+    <script src="~/assets/vendor/js/sidenav.js"></script>
+    <script src="~/assets/vendor/libs/chartjs/chartjs.js"></script>
+    <script src="~/assets/vendor/libs/datatables/datatables.js"></script>
+    <script src="~/assets/vendor/libs/bootbox/bootbox.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@8"></script>
+    <script src="~/assets/vendor/libs/block-ui/block-ui.js"></script>
+    <script src="~/assets/vendor/libs/flot/flot.js"></script>
+    <script src="~/assets/vendor/libs/popper/popper.js"></script>
+
+
+
+
+    <!-- Libs -->
+
+    <!-- `perfect-scrollbar` library required by SideNav plugin -->
+    <script src="~/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.js"></script>
+    <script src="~/js/highlight/highlight.pack.js"></script>
+
+    <!-- Main script -->
+
+    <script src="~/assets/js/main.js"></script>
+
+
+</head>
+<body>
+<!-- Google Tag Manager (noscript) -->
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-NPWKDKB"
+                  height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+<!-- End Google Tag Manager (noscript) -->
+<div class="page-loader">
+    <div class="bg-primary"></div>
+</div>
+<!-- Layout wrapper -->
+<div class="layout-wrapper layout-1">
+<!-- Layout inner -->
+<div class="layout-inner">
+
+<!-- Layout navbar -->
+<nav class="layout-navbar navbar navbar-expand-lg align-items-lg-center bg-navbar-theme container-p-x" id="layout-navbar">
+            
+    <a asp-controller="Home" asp-action="Index" class="navbar-brand"><img src="~/assets/eye-icon.png" class="img-fluid" style="max-width: 40px"/> Iris Eye</a>
+
+    <!-- Sidenav toggle -->
+    <div class="layout-sidenav-toggle navbar-nav align-items-lg-center mr-auto mr-lg-4">
+        <a id="toggler" class="nav-item nav-link px-0 ml-2">
+            <i class="ion ion-md-menu text-large align-middle"></i>
+        </a>
+    </div>
+
+    <!-- Navbar toggle -->
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#layout-navbar-collapse">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+            
+    <div class="navbar-collapse collapse" id="layout-navbar-collapse">
+        <!-- Divider -->
+        <hr class="d-lg-none w-100 my-2">
+          
+        <div class="navbar-nav align-items-lg-center ml-auto">
+                    
+            
+
+
+            @if (User.Identity.IsAuthenticated)
+            {
+                <div class="demo-navbar-messages nav-item dropdown mr-lg-3">
+                    @{
+                        var messages = (IEnumerable<TestCaseComment>) ViewBag.messages;
+                    }
+
+                    <a class="nav-link dropdown-toggle hide-arrow" href="#" data-toggle="dropdown">
+                        <i class="ion ion-ios-mail navbar-icon align-middle"></i>
+                        @if(messages.Count()!=0)
+                        {    
+                            <span class="badge badge-primary badge-dot indicator"></span>
+                        }
+                        <span class="d-lg-none align-middle">&nbsp; Messages</span>
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-right">
+                        <div class="bg-primary text-center text-white font-weight-bold p-3">
+                            @messages.Count() New Messages
+                        </div>
+                        <div class="list-group list-group-flush">
+                            @foreach (var message in messages.Take(5).OrderByDescending(p=>p.AddedOn))
+                            {
+                                <a asp-controller="TestLab" asp-action="ReadComment" asp-route-id="@message.Id" class="list-group-item list-group-item-action media d-flex align-items-center">
+                                    <img src="@string.Concat("https://github.com/", message.AddedBy.GitHubAccount, ".png")" class="d-block ui-w-40 rounded-circle" alt>
+                                    <div class="media-body ml-3">
+                                        <div class="text-dark line-height-condenced">@message.Message.TrimLimit(110)</div>
+                                        <div class="text-light small mt-1">
+                                            @message.AddedBy.Name &nbsp;·&nbsp; @message.AddedOn.Humanize(true, DateTime.Now)
+                                        </div>
+                                    </div>
+                                </a>
+                                
+                            }
+                        </div>
+
+                        <a asp-action="ClearAllNotifications" asp-controller="TestLab" class="d-block text-center text-light small p-2 my-1">Clear all notifications</a>
+                    </div>
+                </div>
+                
+                <div class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" data-toggle="dropdown">
+                        <span class="d-inline-flex flex-lg-row-reverse align-items-center align-middle">
+                            <span class="px-1 mr-lg-2 ml-2 ml-lg-0"><i class="ion ion-md-folder"></i> @(((SystemUser) ViewBag.user).SelectedFolder.Name)</span>
+                        </span>
+                    </a>
+
+                    <div class="dropdown-menu dropdown-menu-right">
+                        @foreach (var folder in ((List<Folder>) ViewBag.folders).Where(p => p != ViewBag.activeFolder))
+                        {
+                            <a asp-action="SwitchFolder" asp-controller="Settings" asp-route-id="@folder.Id" class="dropdown-item"><i class="ion ion-md-folder"></i> @folder.Name</a>
+                        }
+                    </div>
+                </div>
+            
+                    
+                <!-- Divider -->
+                <div class="nav-item d-none d-lg-block text-big font-weight-light line-height-1 opacity-25 mr-3 ml-1">|</div>
+                
+                <div class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" data-toggle="dropdown" aria-expanded="false">
+                        <span class="d-inline-flex flex-lg-row-reverse align-items-center align-middle">
+                            <img src="@(currentSystemUser.GitHubAccount!=null?$@"https://github.com/{currentSystemUser.GitHubAccount}.png":"/assets/user.png")" alt="" class="d-block ui-w-30 rounded-circle">
+                            <span class="px-1 mr-lg-2 ml-2 ml-lg-0">@(((SystemUser)ViewBag.user).Name)</span>
+                        </span>
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-right">
+                        <a asp-controller="Auth" asp-action="Profile" asp-route-id="@ViewBag.user.Id" class="dropdown-item"><i class="ion ion-ios-person text-lightest"></i> &nbsp; My profile</a>
+                        <a asp-controller="Auth" asp-action="Account" class="dropdown-item"><i class="ion ion-md-settings text-lightest"></i> &nbsp; Account settings</a>
+                        <div class="dropdown-divider"></div>
+                        <a asp-controller="Auth" asp-action="LogOut" class="dropdown-item"><i class="ion ion-ios-log-out text-danger"></i> &nbsp; Log Out</a>
+                    </div>
+                </div>
+
+            } else 
+            {
+
+                <div class="nav-item">
+                    <span class="d-inline-flex flex-lg-row-reverse align-items-center align-middle">
+                        <a class="nav-link" asp-action="Index" asp-controller="Auth"><i class="ion ion-md-person"></i>  Sign In</a>
+                    </span>
+                </div>
+            }       
+
+        </div>
+    </div>
+</nav>
+<!-- / Layout navbar -->
+
+<div class="layout-container">
+
+    <!-- Layout sidenav -->
+    <div id="layout-sidenav" class="layout-sidenav sidenav sidenav-vertical bg-sidenav-theme">
+        <ul class="sidenav-inner py-1">
+            <li class="sidenav-item @(currentPage.Equals("/")?"active":"")">
+                <a id="dashboard" asp-controller="Home" asp-action="Index" class="sidenav-link"><i class="sidenav-icon ion ion-md-speedometer"></i><div>Dashboard</div></a>
+            </li>
+            <li class="sidenav-item @(currentPage.Contains("ResultsExplorer/FailedTests")?"active":"")">
+                <a asp-controller="ResultsExplorer" asp-action="FailedTests" class="sidenav-link"><i class="sidenav-icon ion ion-ios-bug"></i><div>Failed Tests</div></a>
+            </li>
+
+                   
+            <li class="sidenav-item @(currentPage.Contains("ResultsExplorer/Index")?"open active":"")">
+                <a href="javascript:void(0)" class="sidenav-link sidenav-toggle">
+                    <i class="sidenav-icon ion ion-md-document"></i>
+                    <div>Results explorer</div>
+                    <div class="pl-1 ml-auto">
+                        <div class="badge badge-outline-primary">@runs.Count</div>
+                    </div>
+                </a>
+                @{
+                    var currentId = currentPage.Split('/').LastOrDefault();
+                    int.TryParse(currentId, out var parsedRunId);
+                    
+                }
+                <ul class="sidenav-menu">
+                    @foreach (var run in runs.GroupBy(p => p.Environment).OrderBy(p=>p.Key))
+                    {
+                        <li class="sidenav-item @(parsedRunId!=0&&currentPage.Contains("ResultsExplorer/Index") && run.Any(p=>p.Id==parsedRunId)?"open active":"")">
+                            @{
+                                var icon = "";
+                                switch (run.Key)
+                                {
+                                    case "osx":
+                                        icon = "fa-apple";
+                                        break;
+                                    case "linux":
+                                        icon = "fa-linux";
+                                        break;
+                                    default:
+                                        icon = "fa-windows";
+                                        break;
+                                    
+                                }
+                            }
+                            <a href="javascript:void(0)" class="sidenav-link sidenav-toggle">
+                                <div><i class="fab fa-lg @icon"></i> @run.Key.ConvertEnvironment()</div>
+                                <div class="pl-1 ml-auto">
+                                    <div class="badge badge-outline-primary">@run.Count()</div>
+                                </div>
+
+                            </a>
+                            <ul class="sidenav-menu">
+                                @foreach (var item in run.OrderByDescending(p=>p.ReportTime))
+                                {
+                                    <li class="sidenav-item @(currentPage.Contains("ResultsExplorer/Index/"+item.Id)?"open active":"")">
+                                        <a asp-controller="ResultsExplorer" asp-action="Index" asp-route-id="@item.Id" class="sidenav-link">
+                                            <div style="font-size: 12px">
+                                                <span class="badge badge-outline-primary">@(item.BetaChannel ?? item.Version)</span> @item.ReportTime.Humanize()
+                                            </div>
+                                        </a>
+                                    </li>
+                                }
+                            </ul>
+                        </li>    
+                    }
+                </ul>
+            </li>
+            
+            <li class="sidenav-item @(currentPage.Contains("TestLab")?"open":"")">
+                <a href="javascript:void(0)" class="sidenav-link sidenav-toggle">
+                    <i class="sidenav-icon ion ion-md-flask"></i>
+                    <div>Test Lab</div>
+                </a>
+                <ul class="sidenav-menu">
+                    <li class="sidenav-item @(currentPage.Contains("Statistics")?"active":"")">
+                        <a asp-controller="TestLab" asp-action="Statistics" class="sidenav-link">
+                            <div><i class="fas fa-lg fa-chart-bar"></i> Stats</div>
+                        </a>
+                    </li>
+                    
+                    <li class="sidenav-item @(currentPage.Contains("CoverageProgress")?"active":"")">
+                        <a asp-controller="TestLab" asp-action="CoverageProgress" class="sidenav-link">
+                            <div><i class="fas fa-lg fa-spinner"></i> Coverage Progress</div>
+                        </a>
+                    </li>
+
+
+                    <li class="sidenav-item @(currentPage.Contains("TestSuite") ||currentPage.EndsWith("TestLab") || currentPage.Contains("TestCase") ?"active":"")">
+                        <a asp-controller="TestLab" asp-action="Index" class="sidenav-link">
+                            <div><i class="fas fa-lg fa-folder"></i> Test Suites</div>
+                        </a>
+                    </li>
+
+                </ul>
+            </li>
+
+                    
+            @if (User.Identity.IsAuthenticated)
+            {
+                <li class="sidenav-item @(currentPage.Contains("Uploader")?"active":"")">
+                    <a asp-controller="Home" asp-action="Uploader" class="sidenav-link"><i class="sidenav-icon ion ion-md-cloud-upload"></i><div>Logs uploader</div></a>
+                </li>
+            }
+
+        </ul>
+    </div>
+    <!-- / Layout sidenav -->
+
+    <div class="layout-content">
+
+        <!-- Page content -->
+        @RenderBody()
+        <!-- / Page content -->
+
+        <!-- Layout footer -->
+        <nav class="layout-footer footer bg-footer-theme">
+            <div class="container-fluid container-p-x pb-3">
+            </div>
+        </nav>
+        <!-- / Layout footer -->
+
+    </div>
+</div>
+
+</div>
+<!-- Layout inner -->
+
+<div class="layout-overlay layout-sidenav-toggle"></div>
+</div>
+<!-- / Layout wrapper -->
+<!-- / Content -->
+@RenderSection("Scripts", required: false)
+<script>
+    $('#toggler').click(function() {
+        var res = !$('html').attr('class').includes('collapsed');
+        $.ajax({   
+            type: 'POST',
+            async: true,
+            url: '@Url.Action("SidebarHide", "Auth")',   
+            data: {'collapsed': res},
+            beforeSend: function() {
+            },
+            success: function (data) {
+            }
+        });
+    });
+    
+</script>
+</body>
+</html>

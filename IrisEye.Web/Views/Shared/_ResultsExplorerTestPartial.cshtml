@@ -1,0 +1,79 @@
+@using Humanizer
+@using IrisEye.Core.Entities
+@using IrisEye.Core.Models
+@using IrisEye.Data.Extensions
+@using Microsoft.EntityFrameworkCore.Internal
+@model ViewTest
+
+<div class="p-4 p-md-5">
+@switch (Model.Status)
+{
+    case TestStatus.Unidentified:
+        break;
+    case TestStatus.Passed:
+        <i style="font-size: 20px" class="text-success ion ion-md-checkmark-circle"></i>
+        break;
+    case TestStatus.Failed:
+        <i style="font-size: 20px" class="text-danger ion ion-ios-close-circle"></i>
+        break;
+    case TestStatus.Error:
+        <i style="font-size: 20px" class="text-warning ion ion-ios-close-circle"></i>
+        break;
+    default:
+        throw new ArgumentOutOfRangeException();
+}
+    <a asp-controller="ResultsExplorer" asp-action="AnalyzeTest" asp-route-id="@Model.TestId" class="text-dark text-large font-weight-semibold">@Model.Name - @Model.Description </a>
+    <div class="d-flex flex-wrap mt-3">
+        @{
+            var analysisResult = Model.Steps.SelectMany(p => p.StepAnalysisItems).OrderByDescending(p => p.AddedOn).FirstOrDefault();
+        }
+        <div class="mr-3"><i class="ion ion-md-filing text-light" title="Suite"></i>&nbsp; @(Model.SuitName != null ? Model.SuitName.Replace("_", " ") : "NOT FOUND")</div>
+        <div class="mr-3"><i class="ion ion-md-person text-light" title="Author"></i>&nbsp; @(!string.IsNullOrEmpty(Model.Author) ? Model.Author : "NOT FOUND")</div>
+        @if (Model.Steps.Any())
+        {
+            <div class="mr-3"><i class="ion ion-md-time text-primary" title="Execution time"></i>&nbsp; @(Math.Round((Model.Steps.OrderBy(p => p.DateTime).LastOrDefault()?.DateTime - Model.Steps.OrderBy(p => p.DateTime).FirstOrDefault()?.DateTime).Value.TotalSeconds)) second(s)</div>
+        }
+        @if(Model.Failed)
+        {
+            <div class="mr-3"><i class="ion ion-md-search text-primary" title="Analysis"></i>&nbsp; @(analysisResult!=null?analysisResult.AnalysisResolution.GetDescription() + " by " + analysisResult.AddedBy?.Name + $@" ({analysisResult.AddedOn.Humanize(true, DateTime.Now)})":"Not Analyzed") <a target="_blank" href="https://github.com/mozilla/iris/issues/@analysisResult?.GitHubId">@analysisResult?.GitHubId</a></div>
+        }
+    </div>
+    @{
+        var counter = 1;
+    }
+    <div class="mt-3 mb-4">
+        @foreach (var step in Model.Steps.OrderBy(p => p.DateTime))
+        {
+            <div class="media mb-3">
+                <div>
+                    <div class="text-muted small text-nowrap mt-2">
+                        @step.DateTime.ToLongTimeString()
+                    </div>
+                </div>
+                <div class="media-body bg-lighter rounded py-2 px-3 ml-3 @(!step.IsPassed ? "text-danger" : "")">
+                    <span class="badge badge-outline-primary"> #@counter</span>
+                    @step.Message
+                </div>
+                @{
+                    counter++;
+                }
+            </div>
+        }
+    </div>
+    @{
+        var stacktrace = Model.Steps.FirstOrDefault(p => !string.IsNullOrEmpty(p.StackTrace));
+    }
+                            
+
+   @{
+       var path = Context.Request.Path.ToString();
+   }
+    <button type="button" data-stacktrace="@stacktrace?.StackTrace" class="btn btn-danger btn-round stacktrace" @(stacktrace==null?"disabled":"")>See the stacktrace</button>
+        <div class="btn-group float-right">
+            <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-expanded="false">Actions</button>
+            <div class="dropdown-menu" x-placement="bottom-start" style="position: absolute; will-change: top, left; top: 38px; left: 0px;">
+                <a class="dropdown-item" target="_blank" asp-controller="ResultsExplorer" asp-action="CompareEnvironments" asp-route-id="@Model.TestId">Compare environments</a>                
+            </div>
+        </div>
+
+</div>

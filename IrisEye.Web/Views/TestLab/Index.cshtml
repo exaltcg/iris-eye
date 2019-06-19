@@ -1,0 +1,114 @@
+@using System.Text.RegularExpressions
+@using IrisEye.Core.Entities
+@using IrisEye.Web.Utils
+@using Microsoft.EntityFrameworkCore.Storage.ValueConversion.Internal
+@model IEnumerable<IrisEye.Core.Entities.TestSuite>
+@{
+    ViewBag.Title = "Test Lab";
+    Layout = "_Layout";
+}
+
+<div class="container-fluid flex-grow-1 container-p-y">
+
+    <h4 class="d-flex justify-content-between align-items-center w-100 font-weight-bold py-3 mb-4">
+        <div>Test Lab</div>
+        @if (User.Identity.IsAuthenticated){
+            <a asp-action="ImportIssues" class="btn btn-primary btn-round d-block"><span class="ion ion-md-add"></span>&nbsp; Import new test suite</a>
+        }
+    </h4>
+
+    <div class="row">
+        @foreach(var testSuite in Model.OrderByDescending(p=>p.Id))
+        {
+            <div class="col-sm-6 col-xl-4">
+                @{
+                    var inProgress = testSuite.TestCases.Count(p => p.Status == Status.InProgress 
+                                                                    || p.Status==Status.ReviewStarted 
+                                                                    || p.Status==Status.ReadyForReview
+                                                                    || p.Status == Status.ToCrossPlatform);
+                    var closed = testSuite.TestCases.Count(p => p.Status == Status.Closed);
+                    var total = testSuite.TestCases.Count(p => p.Status != Status.CannotAutomate);
+                    var completed = testSuite.TestCases.Count(p => p.Status == Status.Finished) + closed;
+                    var percentage = total==0?0 : Math.Round((((decimal) completed) / (total)) * 100);
+                    var state = "";
+                    var stateClass = "";
+                    if (completed == total)
+                    {
+                        state = "Completed";
+                        stateClass = "primary";
+                    } else if (inProgress == 0 && completed == 0)
+                    {
+                        state = "New";
+                        stateClass = "default";
+                    }
+                    else
+                    {
+                        state = "Active";
+                        stateClass = "success";
+                    }
+                                            
+                }
+
+                <div class="card mb-4">
+                    <div class="card-body d-flex justify-content-between align-items-start pb-3">
+                        <div>
+                            <a asp-action="TestSuite" asp-controller="TestLab" asp-route-id="@testSuite.Id" class="text-dark text-big font-weight-semibold">@testSuite.Name</a>
+                            <span class="badge badge-@stateClass align-text-bottom ml-1">@state</span>
+                            <div class="text-muted small mt-1">@total total, @inProgress in progress, @completed completed</div>
+                        </div>
+                        <div class="btn-group project-actions">
+                            <button type="button" class="btn btn-sm btn-default icon-btn borderless btn-round md-btn-flat dropdown-toggle hide-arrow" data-toggle="dropdown">
+                                <i class="ion ion-ios-more"></i>
+                            </button>
+                            <div class="dropdown-menu dropdown-menu-right">
+                                <a class="dropdown-item" asp-action="TestSuite" asp-controller="TestLab" asp-route-id="@testSuite.Id">View</a>
+                                @if (User.IsInRole(SystemRoles.Administrator))
+                                {
+                                    <a class="dropdown-item" asp-action="DeleteTestSuite" asp-controller="TestLab" asp-route-id="@testSuite.Id">Delete</a>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    <div class="progress rounded-0" style="height: 5px;">
+                        <div class="progress-bar bg-success progress-bar-striped progress-bar-animated" style="width: @percentage%;"></div>
+                    </div>
+                    <div class="card-body small pt-2 pb-0">
+                        <strong>@percentage%</strong> completed
+                    </div>
+                    <div class="card-body pb-3">
+                        @{
+                            var text = testSuite.Description != null ? Regex.Replace(testSuite.Description,
+                                @"((http|ftp|https):\/\/[\w\-_]+(\.[\w\-_]+)+([\w\-\.,@?^=%&amp;:/~\+#]*[\w\-\@?^=%&amp;/~\+#])?)",
+                                "<a target='_blank' href='$1'>$1</a>") : "";
+                        }
+                        <small>@Html.Raw(text.Replace("\n", "<br />"))</small>
+                    </div>
+                    <div class="card-body pt-0">
+                        <div class="row">
+                            <div class="col">
+                                <div class="text-muted small">Created</div>
+                                <div class="font-weight-bold">@testSuite.AddedOn.ToString("MM/dd/yyyy")</div>
+                            </div>
+                            <div class="col">
+                                <div class="text-muted small">Estimated Deadline</div>
+                                <div class="font-weight-bold">@testSuite.AddedOn.AddDays(testSuite.TestCases.Count).ToString("MM/dd/yyyy")</div>
+                            </div>
+                        </div>
+                    </div>
+                    <hr class="m-0">
+                    <div class="card-body py-3">
+                        <div class="text-muted small mb-2">Participants</div>
+                        <div class="d-flex flex-wrap">
+                            @foreach(var user in testSuite.TestCases.Where(p=>p.Assignee!=null).Select(p=>p.Assignee).Distinct())
+                            {
+                                <a asp-action="Profile" asp-controller="Auth" asp-route-id="@user.Id" class="d-block mr-1 mb-1"><img src="@string.Concat("https://github.com/", user.GitHubAccount, ".png")" alt="" class="ui-w-30 rounded-circle"></a>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        }
+    </div>
+    
+</div>

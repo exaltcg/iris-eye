@@ -1,0 +1,412 @@
+﻿@{
+    ViewData["Title"] = "Home Page";
+}
+@using Humanizer
+@using IrisEye.Data.Extensions
+@using Microsoft.EntityFrameworkCore.Internal
+@model DashboardDataModel
+
+<!-- Content -->
+<div class="container-fluid flex-grow-1 container-p-y">
+
+<h4 class="font-weight-bold py-3 mb-4">
+    Dashboard
+    <div class="text-muted text-tiny mt-1"><small class="font-weight-normal">Latest results on @DateTime.Now.ToString("dddd, dd MMMM yyyy HH:mm:ss")</small></div>
+</h4>
+
+<!-- Stats -->
+<div class="row">
+
+    @foreach (var os in Model.LatestStats.Where(p=>p!=null).OrderBy(p => p.Environment))
+    {
+        <div style="font-size: 12px" class="col-md-6">
+            <div class="card mb-3">
+                <div class="card-header with-elements">
+                    <span class="card-header-title mr-2">
+                        <i class="fab fa-lg
+@switch (os.Environment)
+{
+    case "osx":
+        <text>fa-apple</text>
+        break;
+    case "linux":
+        <text>fa-linux</text>
+        break;
+    default:
+        <text>fa-windows</text>
+        break;
+}
+">
+
+                        </i>
+                        @os.Environment.ConvertEnvironment()
+                    </span>
+                    <div class="card-header-elements">
+                        <span class="badge badge-outline-primary">
+                            @os.Version
+                        </span>
+                    </div>
+                    <div class="card-header-elements ml-md-auto">
+                        @if ((DateTime.Now - os.Date).TotalDays < 1)
+                        {
+                            <span class="badge badge-success badge-pill">
+                                @os.Date.Humanize()
+                            </span>
+
+                        }
+                        else if ((DateTime.Now - os.Date).TotalDays < 3)
+                        {
+                            <span class="badge badge-warning badge-pill">
+                                @os.Date.Humanize()
+                            </span>
+
+                        }
+                        else
+                        {
+                            <span class="badge badge-danger badge-pill">
+                                @os.Date.Humanize()
+                            </span>
+
+                        }
+
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div style="padding-right: 0px" class="col-md-9 align-self-center text-center">
+                            <i class="fas fa-spinner fa-4x fa-pulse spin-@os.Environment"></i>
+                            <canvas data-run="@os.Environment" class="stats-chart" width="1370" height="420" style="display: block; height: 210px; width: 685px;"></canvas>
+                        </div>
+                        <div style="padding-left: 0px" class="col align-self-center">
+                            <div class="mb-1 text-success">Passed: @os.Passed</div>
+                            <div class="mb-1 text-warning">Errors: @os.Errors</div>
+                            <div class="mb-1 text-danger">Failed: @os.Failed</div>
+                            <div data-placement="left" title="Not Analyzed" style="font-size: 10px;" class="mb-1 text-danger"> Not Analyzed: @os.NotAnalyzed</div>
+                            <div data-placement="left" title="New Issues" style="font-size: 10px;" class="mb-1 text-danger"> New Issues: @os.NewIssues</div>
+                            <div data-placement="left" title="Known Issues" style="font-size: 10px;" class="mb-1 text-danger"> Known Issues: @os.KnownIssues</div>
+                            <div title="Can't Reproduce" style="font-size: 10px;" class="mb-1 text-danger"> Can't Reproduce: @os.CannotReproduce</div>
+                            <div class="mb-1 font-weight-bold">Total run: @(os.Passed + os.Failed)</div>
+                        </div>
+                        @{
+                            var percentage = (Math.Round((((decimal) os.Passed + os.Skipped) / os.Total) * 100, 2));
+                        }
+                        
+
+                    </div>
+                    <span class="small text-success font-weight-semibold mb-3">@percentage% passed</span> 
+                    <div class="progress bg-danger" style="height: 20px;">
+                        <div class="progress-bar progress-bar-striped bg-success" style="width: @Math.Round(percentage)%;"></div>
+                    </div>
+
+                </div>
+                <div class="card-footer">
+                    <a class="btn btn-sm btn-primary d-block" asp-action="Index" asp-controller="ResultsExplorer" asp-route-id="@os.RunId">Details</a>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+<!-- / Stats -->
+<br />
+<div class="row">
+    <div class="col">
+        <!-- Sale stats -->
+        <div class="card mb-4">
+            <h6 class="card-header with-elements">
+                <div class="card-header-title">Failed tests from the latest runs</div>
+            </h6>
+            <div class="card-datatable table-responsive">
+                <table id="failedtests" class="table card-table table-sm table-striped" style="font-size: 12px;">
+                    <thead>
+                    <tr>
+                        <th>Suite</th>
+                        <th>Test</th>
+                        <th>Author</th>
+                        <th>OSX</th>
+                        <th>Linux</th>
+                        <th>Win 7</th>
+                        <th>Win 10</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var test in Model.FailedTests)
+                    {
+                        <tr>
+                            <td>@test.Suit?.Replace("_", " ")</td>
+                            <td>
+                                <a asp-controller="ResultsExplorer" asp-action="CompareEnvironments" asp-route-id="@test.TestId">@test.Test</a>
+                            </td>
+                            <td>
+                                @{
+                                    var localAuthor = Model.Users.FirstOrDefault(p => p.GitHubAccount == test.Author);
+                                }
+                                @if (localAuthor != null)
+                                {
+                                    <a asp-action="Profile" asp-controller="Auth" asp-route-id="@localAuthor.Id">@localAuthor.Name</a>
+                                } else {
+                                    <text>@test.Author</text>
+                                }
+                                
+                            </td>
+                            @if (!test.Osx.HasValue)
+                            {
+                                <td data-sort="0">
+                                    <i class="text-warning ion ion-ios-warning d-block"></i>
+                                </td>
+
+                            }else
+                                if (test.Osx.Value)
+                                {
+                                    <td data-sort="0">
+                                        <a asp-controller="ResultsExplorer" asp-action="Index" asp-route-id="@test.OsxRunId" asp-route-suit="@test.Suit" asp-route-query="@test.Test!"><i class="text-danger ion ion-ios-close-circle d-block"></i></a>
+                                    </td>
+                                }
+                                else
+                                {
+                                    <td data-sort="1">
+                                        <a asp-controller="ResultsExplorer" asp-action="Index" asp-route-id="@test.OsxRunId" asp-route-suit="@test.Suit" asp-route-query="@test.Test!"><i class="text-success ion ion-md-checkmark-circle d-block"></i></a>
+                                    </td>
+                                }
+                                    
+                            @if (!test.Linux.HasValue)
+                            {
+                                <td data-sort="0">
+                                    <i class="text-warning ion ion-ios-warning d-block"></i>
+                                </td>
+
+                            }else
+
+                                if (test.Linux.Value)
+                                {
+                                    <td data-sort="0">
+                                        <a asp-controller="ResultsExplorer" asp-action="Index" asp-route-id="@test.LinuxRunId" asp-route-suit="@test.Suit" asp-route-query="@test.Test!"><i class="text-danger ion ion-ios-close-circle d-block"></i></a>
+                                    </td>
+                                }
+                                else
+                                {
+                                    <td data-sort="1">
+                                        <a asp-controller="ResultsExplorer" asp-action="Index" asp-route-id="@test.LinuxRunId" asp-route-suit="@test.Suit" asp-route-query="@test.Test!"><i class="text-success ion ion-md-checkmark-circle d-block"></i></a>
+                                    </td>
+                                }
+                                
+                            @if (!test.Windows7.HasValue)
+                            {
+                                <td data-sort="0">
+                                    <i class="text-warning ion ion-ios-warning d-block"></i>
+                                </td>
+
+                            }else
+    
+                                if (test.Windows7.Value)
+                                {
+                                    <td data-sort="0">
+                                        <a asp-controller="ResultsExplorer" asp-action="Index" asp-route-id="@test.Win7RunId" asp-route-suit="@test.Suit" asp-route-query="@test.Test!"><i class="text-danger ion ion-ios-close-circle d-block"></i></a>
+                                    </td>
+                                }
+                                else
+                                {
+                                    <td data-sort="1">
+                                        <a asp-controller="ResultsExplorer" asp-action="Index" asp-route-id="@test.Win7RunId" asp-route-suit="@test.Suit" asp-route-query="@test.Test!"><i class="text-success ion ion-md-checkmark-circle d-block"></i></a>
+                                    </td>
+                                }
+                                
+                            @if (!test.Windows10.HasValue)
+                            {
+                                <td data-sort="0">
+                                    <i class="text-warning ion ion-ios-warning d-block"></i>
+                                </td>
+
+                            }else
+    
+                                if (test.Windows10.Value)
+                                {
+                                    <td data-sort="">
+                                        <a asp-controller="ResultsExplorer" asp-action="Index" asp-route-id="@test.Win10RunId" asp-route-suit="@test.Suit" asp-route-query="@test.Test!"><i class="text-danger ion ion-ios-close-circle d-block"></i></a>
+                                    </td>            
+                                }
+                                else
+                                {
+                                    <td data-sort="1">
+                                        <a asp-controller="ResultsExplorer" asp-action="Index" asp-route-id="@test.Win10RunId" asp-route-suit="@test.Suit" asp-route-query="@test.Test!"><i class="text-success ion ion-md-checkmark-circle d-block"></i></a>
+                                    </td>
+                                }
+
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <!-- / Sale stats -->
+
+    </div>
+</div>
+
+</div>
+<!-- / Head block -->
+
+<script type="text/javascript">
+    var myChart;
+
+    $(document).ready(function() {
+
+        drawAllCharts();
+
+        $('#failedtests').dataTable({
+            order: []
+        });
+        
+        $('[data-toggle="tooltip"]').tooltip();
+    });    
+        
+    function drawAllCharts() {
+        $.each($('.stats-chart'),
+            function(index, newchart) {
+                var passed = new Array();
+                var failed = new Array();
+                var errors = new Array();
+                var skipped = new Array();
+                var dates = new Array();
+
+                var chart = $(this);
+                var env = chart.data("run");
+                $.ajax({   
+                    type: 'POST',
+                    async: true,
+                    url: '@Url.Action("GetStatsForRun", "Stats")',   
+                    data: {'environment': env},
+                    beforeSend: function() {
+                    },
+                    error: function (request, status, error) {
+                        console.log(error);
+                    },
+                    success: function (data) {
+                        $(".spin-" + env).hide();
+                        $(newchart).show();
+                        $.each(data, function(index, element) {
+                            dates.push(element.date);
+                            skipped.push(element.skipped);
+                            passed.push(element.passed);
+                            failed.push(element.failed);
+                            errors.push(element.errors);
+                        });
+                        //begin chart
+                        
+                        myChart = new Chart(newchart.getContext("2d"), {
+                            type: 'line',
+                            data: {
+                                labels: dates,
+                                datasets: [{
+                                        label: 'Passed',
+                                        data: passed,
+                                        borderWidth: 1,
+                                        backgroundColor: 'rgba(38, 180, 255, 0.1)',
+                                        borderColor: '#4CAF50'
+                                    }, {
+                                        label: 'Failed',
+                                        data: failed,
+                                        borderWidth: 1,
+                                        backgroundColor: 'rgba(136, 151, 170, 0.1)',
+                                        borderColor: '#f12f2f'
+                                    },
+                                    {
+                                        label: 'Errors',
+                                        data: errors,
+                                        borderWidth: 1,
+                                        backgroundColor: 'rgba(136, 151, 170, 0.1)',
+                                        borderColor: '#f28430'
+                                    },
+                                    {
+                                        label: 'Skipped',
+                                        data: skipped,
+                                        borderWidth: 1,
+                                        backgroundColor: 'rgba(136, 151, 170, 0.1)',
+                                        borderColor: '#26B4FF'
+                                    }
+                                ]
+                            },
+                            options: {
+                                scales: {
+                                    xAxes: [{
+                                        gridLines: {
+                                            display: false
+                                        },
+                                        ticks: {
+                                            fontColor: '#aaa',
+                                            autoSkipPadding: 50
+                                        }
+                                    }],
+                                    yAxes: [{
+                                        gridLines: {
+                                            display: false
+                                        },
+                                        ticks: {
+                                            fontColor: '#aaa',
+                                            maxTicksLimit: 5
+                                        }
+                                    }]
+                                },
+
+                                responsive: true,
+                                maintainAspectRatio: false
+                            }
+                        });
+
+                        
+                        //end chart
+                    }
+                });
+
+            });
+    }
+
+    function drawChart(obj, color) {
+        var passed = obj.dataset.passed;
+        var failed = obj.dataset.failed;
+        
+        var newChart = new Chart(obj.getContext("2d"),
+            {
+                type: 'doughnut',
+                data: {
+                    datasets: [
+                        {
+                            label: 'Stats',
+                            data: [passed, failed],
+                            backgroundColor: ['#4CAF50', '#f12f2f', '#f28430'],
+                            borderWidth: 1
+                        }
+                    ],
+                    labels: [
+                        'Passed',
+                        'Failed'
+                    ]
+                },
+
+                options: {
+                    scales: {
+                        xAxes: [
+                            {
+                                display: false
+                            }
+                        ],
+                        yAxes: [
+                            {
+                                display: false
+                            }
+                        ]
+                    },
+                    legend: {
+                        display: false
+                    },
+                    tooltips: {
+                        enabled: false
+                    },
+                    cutoutPercentage: 80,
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+
+    }
+        
+</script>

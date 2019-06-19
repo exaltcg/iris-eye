@@ -1,0 +1,65 @@
+@model ImportIssuesViewModel
+
+@{
+    ViewBag.Title = "Import new issues";
+    Layout = "_Layout";
+}
+
+
+<div class="container-fluid flex-grow-1 container-p-y">
+
+    <h4 class="py-3 mb-4">
+        <ol class="breadcrumb font-weight-bold m-0">
+            <li class="breadcrumb-item"><a asp-action="Index" asp-controller="TestLab">Test Lab</a></li>
+            <li class="breadcrumb-item active">Import new issues</li>
+        </ol>
+    </h4>
+    
+    <div class="card mb-4">
+        <h6 class="card-header">
+            Add new test / issue
+        </h6>
+        <div class="card-body">
+            <div asp-validation-summary="ModelOnly" class="alert alert-dark-danger alert-dismissible fade show" role="alert">Errors occured:</div>
+            <form id="submit-issue-form" asp-action="ImportIssues" method="post">
+                <input type="hidden" asp-for="TestSuiteId"/>
+                @if(Model.TestSuiteId==0)
+                {
+                 <div class="form-group">
+                    <label asp-for="ProjectId" class="form-label"></label>
+                    <input asp-for="ProjectId" type="number" class="form-control" placeholder="Project ID">
+                    <span style="font-size: 10px" asp-validation-for="ProjectId" class="invalid-feedback"></span>
+                </div>
+                }
+                else
+                {
+                    <div class="form-group">
+                        <label asp-for="IssueId" class="form-label"></label>
+                        <input asp-for="IssueId" type="number" class="form-control" placeholder="Project ID">
+                        <span style="font-size: 10px" asp-validation-for="IssueId" class="invalid-feedback"></span>
+                    </div>
+                    
+                }
+                <button id="submit-import" type="submit" class="btn btn-primary">Submit</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
+
+
+<script> 
+
+    $(document).ready(function () { 
+
+        $('#submit-import').on('click', 
+            function (event) { 
+                $('#submit-import').prop('disabled', true); 
+                $('#submit-issue-form').submit(); 
+            }); 
+    }); 
+
+</script> 

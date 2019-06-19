@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+
+<html lang="en" class="default-style">
+
+<head>
+  <title>IRIS Eye:@ViewData["Title"]</title>
+  <link rel="shortcut icon" type="image/x-icon" href="~/assets/eye.ico"/>
+
+  <meta charset="utf-8">
+  <meta http-equiv="x-ua-compatible" content="IE=edge,chrome=1">
+  <meta name="description" content="">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+  <!-- Google Tag Manager -->
+  <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','GTM-NPWKDKB');</script>
+  <!-- End Google Tag Manager -->
+
+  <link rel="icon" type="image/x-icon" href="~/assets/eye-icon.png">
+
+  <link href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,500,500i,700,700i,900" rel="stylesheet">
+
+  <!-- Icon fonts -->
+  <link rel="stylesheet" href="~/assets/vendor/fonts/fontawesome.css">
+  <link rel="stylesheet" href="~/assets/vendor/fonts/ionicons.css">
+  <link rel="stylesheet" href="~/assets/vendor/fonts/linearicons.css">
+  <link rel="stylesheet" href="~/assets/vendor/fonts/open-iconic.css">
+  <link rel="stylesheet" href="~/assets/vendor/fonts/pe-icon-7-stroke.css">
+
+  <!-- Core stylesheets -->
+  <link rel="stylesheet" href="~/assets/vendor/css/rtl/bootstrap.css" class="theme-settings-bootstrap-css">
+  <link rel="stylesheet" href="~/assets/vendor/css/rtl/appwork.css" class="theme-settings-appwork-css">
+  <link rel="stylesheet" href="~/assets/vendor/css/rtl/theme-corporate.css" class="theme-settings-theme-css">
+  <link rel="stylesheet" href="~/assets/vendor/css/rtl/colors.css" class="theme-settings-colors-css">
+  <link rel="stylesheet" href="~/assets/vendor/css/rtl/uikit.css">
+  <!-- Core scripts -->
+  <script src="~/assets/vendor/libs/popper/popper.js"></script>
+  <script src="~/assets/vendor/js/bootstrap.js"></script>
+  <script src="~/assets/vendor/js/sidenav.js"></script>
+
+
+  <script src="~/assets/vendor/js/material-ripple.js"></script>
+  <script src="~/assets/vendor/js/layout-helpers.js"></script>
+  
+
+  <!-- Libs -->
+  <script src="~/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.js"></script>
+
+  <!-- Core scripts -->
+  <script src="~/assets/vendor/js/pace.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+
+  <!-- Libs -->
+  <link rel="stylesheet" href="~/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css">
+  <!-- Page -->
+  <link rel="stylesheet" href="~/assets/vendor/css/pages/authentication.css">
+</head>
+
+<body>
+<!-- Google Tag Manager (noscript) -->
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-NPWKDKB"
+                  height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+<!-- End Google Tag Manager (noscript) -->
+  <div class="page-loader">
+    <div class="bg-primary"></div>
+  </div>
+
+  <!-- Content -->
+
+  <div class="authentication-wrapper authentication-3">
+    <div class="authentication-inner">
+
+      <!-- Side container -->
+      <!-- Do not display the container on extra small, small and medium screens -->
+      <div class="d-none d-lg-flex col-lg-8 align-items-center ui-bg-cover ui-bg-overlay-container p-5" style="background-image: url('@Url.Content("~/assets/background.jpg")');">
+        <div class="ui-bg-overlay bg-dark opacity-50"></div>
+
+        <!-- Text -->
+        <div class="w-100 text-white px-5">
+          <h1 class="display-2 font-weight-bolder mb-4">JOIN OUR<br>COMMUNITY</h1>
+          <div class="text-large font-weight-light">
+            Iris Eye is an ultimate toolset for individuals who enjoy using Mozilla's Iris framework. Get access to all features of Eye with your account. 
+          </div>
+        </div>
+        <!-- /.Text -->
+      </div>
+      <!-- / Side container -->
+
+      <!-- Form container -->
+      <div class="d-flex col-lg-4 align-items-center bg-white p-5">
+        <!-- Inner container -->
+        <div class="d-flex col-sm-7 col-md-5 col-lg-12 px-0 px-xl-4 mx-auto">
+          <div class="w-100">
+
+            <!-- Logo -->
+            <div class="d-flex justify-content-center align-items-center">
+              <div class="ui-w-60">
+                <div class="w-100 position-relative" style="padding-bottom: 54%">
+                  <img class="w-100 position-absolute" src="~/assets/eye-icon.png" />
+                </div>
+              </div>
+            </div>
+            <!-- / Logo -->
+            
+            @RenderBody()
+
+          </div>
+        </div>
+      </div>
+      <!-- / Form container -->
+
+    </div>
+  </div>
+
+  <!-- / Content -->
+@RenderSection("Scripts", required: false)
+</body>
+
+</html>

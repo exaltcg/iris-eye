@@ -1,0 +1,16 @@
+@using Humanizer
+@model IrisEye.Core.Entities.TestCase
+
+@foreach (var comment in Model.TestCaseComments.OrderBy(p=>p.AddedOn))
+{
+    <div class="media mb-3">
+        <div>
+            <img src="@string.Concat("https://github.com/",comment.AddedBy.GitHubAccount, ".png")" class="ui-w-40 rounded-circle" alt="">
+            <div class="text-muted small text-nowrap mt-2">@comment.AddedOn.ToShortTimeString()</div>
+        </div>
+        <div class="media-body bg-lighter rounded py-2 px-3 ml-3">
+            <div class="font-weight-semibold mb-1"><a asp-controller="Auth" asp-action="Profile" asp-route-id="@comment.AddedBy.Id">@comment.AddedBy.Name</a></div>
+            @comment.Message
+        </div>
+    </div>
+}

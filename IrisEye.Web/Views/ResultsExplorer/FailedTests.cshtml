@@ -1,0 +1,382 @@
+@using Humanizer
+@using IrisEye.Core.Entities
+@using IrisEye.Data.Extensions
+@model FailedTestsViewModel
+
+@{
+    ViewBag.Title = "Failed Tests";
+    Layout = "_Layout";
+}
+
+
+<div class="container-fluid flex-grow-1 container-p-y">
+
+    <h4 class="font-weight-bold py-3 mb-4">
+        <span class="text-muted font-weight-light">Results explorer /</span> @ViewBag.Title
+    </h4>
+    
+    <div class="row">
+        <div class="col-md-2">
+            <div class="card mb-4">
+                <div style="padding: 0px" class="card-body">
+                    <div style="font-size: 12px;" class="list-group">
+
+                        @foreach (var run in Model.Runs.OrderByDescending(p => p.ReportTime).Take(10))
+                        {
+                            <a asp-controller="ResultsExplorer" asp-action="FailedTests" asp-route-runId="@run.Id" class="list-group-item list-group-item-action @(run.ReportTime.Date == Model.SelectedRunDate.Date ? "active" : "")">@run.ReportTime.ToString("yyyy MMMM dd")</a>
+                        }
+
+                    </div>    
+                </div>
+            </div>
+            
+        </div>
+        <div class="col-md-10">
+            <div id="tests-container" class="card mb-4" style="zoom: 1;">
+                <div class="card-header">Failed tests on @Model.SelectedRunDate.ToString("yyyy MMMM dd")</div>
+                <div class="card-body">
+                    @await Html.PartialAsync("ResultsExplorer/_FailedTestsListPartial", Model)
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="test-content" style="display: none" class="row" style="zoom: 1;">
+        <div class="col-12">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="card-title with-elements">
+                        <h5 class="m-0 mr-2">Selected Tests</h5>
+                    </div>
+                    <div id="test-content-body">
+                        Test content
+                    </div>
+                    
+                </div>
+            </div>
+        </div>
+        <div id="test-analysis" style="display: none;zoom: 1;" class="col-12">
+            <input type="hidden" id="selected-step-id"/>
+            <input type="hidden" id="selected-analysis-id"/>
+            <div class="card mb-4">
+                <div class="card-body">
+                    
+                    <div class="form-group row">
+                        <label class="col-form-label col-sm-2 text-sm-right">Resolution</label>
+                        <div class="col-sm-10">
+                            <select id="resolution" class="custom-select">
+                                @foreach (var item in ((AnalysisStatus[]) Enum.GetValues(typeof(AnalysisStatus))).Skip(1))
+                                {
+                                    <option value="@((int) item)">@item.GetDescription()</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                    <div id="test-suits-section" class="form-group row">
+                        <label class="col-form-label col-sm-2 text-sm-right">Test Suite</label>
+                        <div class="col-sm-10">
+                            <select id="test-suites" class="custom-select">
+                                @foreach (var item in Model.TestSuites)
+                                {
+                                    <option value="@item.Id">@item.Name</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+
+                    <div style="display: none;" id="already-exists-switch" class="form-group row">
+                        <label class="col-form-label col-sm-2 text-sm-right">Issue already exists</label>
+                        <div class="col-sm-10">
+                            <label class="switcher switcher-sm mr-0">
+                                <input id="check-existing-issue" type="checkbox" class="switcher-input">
+                                <span class="switcher-indicator">
+                                    <span class="switcher-yes"></span>
+                                    <span class="switcher-no"></span>
+                                </span>
+                            </label>
+
+                        </div>
+                    </div>
+                    <div id="existing-id" style="display: none" class="form-group row">
+                        <label class="col-form-label col-sm-2 text-sm-right">Issue Id</label>
+                        <div class="col-sm-10">
+                            <input id="existing-id-number" type="number" class="form-control">
+                        </div>
+                    </div>
+                    <div id="title" class="form-group row">
+                        <label class="col-form-label col-sm-2 text-sm-right">Title</label>
+                        <div class="col-sm-10">
+                            <input id="issue-title" type="text" class="form-control">
+                        </div>
+                    </div>
+                    <div id="message" class="form-group row">
+                        <label class="col-form-label col-sm-2 text-sm-right">Message</label>
+                        <div class="col-sm-10">
+                            <textarea id="message-area" rows="5" type="text" class="form-control"></textarea>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <div class="col-sm-10 ml-sm-auto">
+                            <button id="submit-analysis" class="btn btn-primary">Submit</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="test-analysis-data" style="display: none;zoom: 1;" class="col-12">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="form-group row">
+                        <label class="col-form-label col-sm-2 text-sm-right">Status</label>
+                        <div class="col-sm-10">
+                            <div id="analysis-field-status" class="form-control-plaintext">status</div>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label class="col-form-label col-sm-2 text-sm-right">By</label>
+                        <div class="col-sm-10">
+                            <div id="analysis-field-author" class="form-control-plaintext">author (3 days ago)</div>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label class="col-form-label col-sm-2 text-sm-right">Message</label>
+                        <div class="col-sm-10">
+                            <div id="analysis-field-message" class="form-control-plaintext">message</div>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label class="col-form-label col-sm-2 text-sm-right">Issue</label>
+                        <div class="col-sm-10">
+                            <div class="form-control-plaintext"><a id="analysis-field-github-id" target="_blank"></a></div>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <div class="col-sm-10 ml-sm-auto">
+                            <button data-analysisId="" id="drop-analysis" class="btn btn-danger">Drop analysis data</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="test-history" style="display: none" class="col-12">
+            <div class="card mb-4">
+                <div class="card-body">
+                    History
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    $("#failedtests-table").dataTable({
+        drawCallback: function(){
+            $('*', this.api().table().container())          
+                .on('click', function(){
+                    InitClick();
+                });       
+        }
+    });
+
+    function block(element) {
+        element.block({
+            message: '<div class="sk-wave sk-primary"><div class="sk-rect sk-rect1"></div> <div class="sk-rect sk-rect2"></div> <div class="sk-rect sk-rect3"></div> <div class="sk-rect sk-rect4"></div> <div class="sk-rect sk-rect5"></div></div>',
+            css: {
+                backgroundColor: 'transparent',
+                border: '0'
+            },
+            overlayCSS:  {
+                backgroundColor: '#fff',
+                opacity: 0.8
+            }
+        });
+    }
+    $(document).ready(function() {
+        InitClick();
+    });
+    
+    function InitClick()
+    {
+        $(".test-selector").unbind('click').click(function() {
+            var item = $(this);
+            var testId = item.data("testid");
+            var title = item.data("title");
+            $(".table-primary").removeClass("font-weight-bold");
+            $(".table-primary").removeClass("table-primary");
+            $(".selected-test").removeClass("selected-test");
+            item.addClass("table-primary");
+            item.addClass("font-weight-bold");
+            item.addClass("selected-test");
+            $.ajax({   
+                type: 'POST',
+                async: true,
+                url: '@Url.Action("GetComparedTests", "Stats")',   
+                data: {'id':testId},
+                beforeSend: function() {
+                    block($("#tests-container"));
+                    block($("#test-content"));
+                },
+                success: function (data) {
+                    var testContent = $("#test-content");
+                    testContent.show();
+                    $("#test-content-body").html(data);
+                    $("#test-content").find("h5").text("Selected test: " +title);
+                    $("#tests-container").unblock();
+                    $("#test-content").unblock();
+                    InitAnalysis();
+                    $("#test-analysis").hide();
+                }
+            });    
+        });
+        InitAnalysis();
+    }
+    
+    function InitAnalysis() {
+        $(".selectable").unbind('click').click(function() {
+            var item = $(this);
+            var text = item.text();
+            text = text.substring(text.indexOf('>'), text.length);
+            $(".selectable").parent().removeClass("table-primary");
+            $(".selectable").parent().removeClass("font-weight-bold");
+            item.parent().addClass("table-primary");
+            item.parent().addClass("font-weight-bold");
+            item.parent().addClass("selected-step");
+            $("span:contains('" + text +"')").parent().addClass("table-primary");
+            $("span:contains('" + text +"')").parent().addClass("font-weight-bold");
+            var testId = $(".selected-test").data("testid");
+            var stepId = item.data("stepid");
+            $.ajax({   
+                type: 'POST',
+                async: true,
+                url: '@Url.Action("StartAnalysis", "Stats")',   
+                data: {'testId':testId, 'stepId': stepId},
+                beforeSend: function() {
+                    block($("#test-content"));
+                },
+                error: function (xhr, ajaxOptions, thrownError) {
+                    $("#test-content").unblock();
+                    Swal.fire({
+                        type: 'error',
+                        title: 'Oops...',
+                        text: xhr.responseText
+                    });
+                },
+                success: function (data) {
+                    console.log(data);
+                    $("#test-content").unblock();
+                    $("#selected-step-id").val(data.stepId);
+                    $("#selected-analysis-id").val(data.id);
+                    $("#existing-id-number").val("");
+                    $("#issue-title").val("");
+                    $("#message-area").val("");
+                    $("#check-existing-issue").prop( "checked", false );
+                    $("#title").show();
+                    $("#existing-id").hide();
+                    $("#resolution").get(0).selectedIndex = 0;
+                    switch (data.analysisStatus) {
+                    case 0:
+                        $("#test-analysis-data").hide();
+                        $("#test-analysis").show();
+                        $($(".selected-test").find("td")[3]).text(`Analysis Started by: ${data.user}`);
+                        break;
+                    default:
+                        $("#test-analysis-data").show();
+                        $("#test-analysis").hide();
+                        $("#analysis-field-status").text(data.analysisStatusDescription);
+                        $("#analysis-field-author").text(data.user);
+                        $("#analysis-field-message").text(data.message);
+                        $("#analysis-field-github-id").attr("href", `https://github.com/mozilla/iris/issues/${data.gitHubId}`);
+                        $("#analysis-field-github-id").text(data.gitHubId);
+                        $("#drop-analysis").attr("data-analysisId", data.id);
+                        break;
+                    }
+                }
+            });  
+            
+            
+        });
+    }
+
+    $("#drop-analysis").click(function() {
+        alert($(this).data("analysisid"));
+    });
+    $("#submit-analysis").click(function() {
+        var analysisId = $("#selected-analysis-id").val();
+        var resolutionId = $("#resolution").find(":selected").val();
+        var testSuiteId = $("#test-suites").find(":selected").val();
+        var alreadyExists = $("#check-existing-issue").is(":checked");
+        var existingId = $("#existing-id-number").val();
+        var title = $("#issue-title").val();
+        var message = $("#message-area").val();
+        $.ajax({   
+            type: 'POST',
+            async: true,
+            url: '@Url.Action("SetAnalysis", "Stats")',   
+            data: {
+                'status':parseInt(resolutionId), 
+                'analysisId': parseInt(analysisId),
+                'testSuiteId': parseInt(testSuiteId), 
+                'issueId': parseInt(existingId), 
+                'title':title, 
+                'message': message, 
+                'isAlreadyExists': alreadyExists
+            },
+            beforeSend: function() {
+                block($("#test-analysis"));
+                block($("#test-content"));
+            },
+            success: function (data) {
+                $("#test-analysis").unblock();
+                $("#test-analysis").hide();
+                $("#test-content").hide();
+                $($(".selected-test").find("td")[3]).text(`${data.analysisStatusDescription} by: ${data.user}`);
+            }
+        });
+    });
+</script>
+
+<script>
+    $('#check-existing-issue').change(function() {
+        if ($(this).is(":checked")) {
+            $("#existing-id").show();
+            $("#title").hide();
+            $("#suits-list").hide();
+            $("#test-suits-section").hide();
+
+        } else {
+            $("#existing-id").hide();
+            $("#title").show();
+            $("#suits-list").show();
+            $("#test-suits-section").show();
+        }
+    }); 
+    $('#resolution').on('change', function() {
+        switch(this.value) {
+        case "2":
+            $('#check-existing-issue').prop('checked', false);
+            $("#existing-id").hide();
+            $("#already-exists-switch").hide();
+            $("#title").show();
+            $("#test-suits-section").show();
+            $("#message").show();
+            break;
+        case "3":
+            $("#already-exists-switch").hide();
+            $("#existing-id").show();
+            $("#title").hide();
+            $("#test-suits-section").hide();
+            
+            break;
+        case "4":
+            $("#already-exists-switch").show();
+            $("#existing-id").hide();
+            $('#check-existing-issue').prop('checked', false);
+            $("#title").show();
+            $("#message").show();
+            $("#message-area").text("");
+            $("#test-suits-section").show();
+            break;
+        }
+    });
+
+</script>

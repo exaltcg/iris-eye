@@ -1,0 +1,166 @@
+@using Humanizer
+@using IrisEye.Core.Entities
+@model IEnumerable<ViewTest>  
+
+        @{
+            var counter = 1;
+            var maxsteps = Model.OrderByDescending(p => p.Steps.Count).FirstOrDefault()?.Steps.Count;
+            var osx = Model.FirstOrDefault(p => p.Environment.Equals("osx"));
+            var linux = Model.FirstOrDefault(p => p.Environment.Equals("linux"));
+            var win10 = Model.FirstOrDefault(p => p.Environment.Equals("win"));
+            var win7 = Model.FirstOrDefault(p => p.Environment.Equals("win7"));
+        }
+
+<style>
+    .selectable {
+        cursor: pointer;
+    }
+</style>
+
+<table style="font-size: 12px" class="table table-sm table-striped table-bordered">
+            <thead>
+            <tr>
+                <th>#</th>
+                @if (osx != null)
+                {
+                    <th>
+                        @switch (osx.Status)
+                        {
+                            case TestStatus.Unidentified:
+                                <i class="fas fa-exclamation-triangle"></i>
+                                break;
+                            case TestStatus.Passed:
+                                <i class="text-success ion ion-md-checkmark-circle"></i>
+                                break;
+                            case TestStatus.Failed:
+                                <i class="text-danger ion ion-ios-close-circle"></i>
+                                break;
+                            case TestStatus.Error:
+                                <i class="text-warning ion ion-ios-close-circle"></i>
+                                break;
+                        }
+                        OSX (@osx.Date.Humanize(true, DateTime.Now))
+                    </th>
+                }
+                
+                @if (linux != null)
+                {
+                    <th>
+                        @switch (linux.Status)
+                        {
+                            case TestStatus.Unidentified:
+                                <i class="fas fa-exclamation-triangle"></i>
+                                break;
+                            case TestStatus.Passed:
+                                <i class="text-success ion ion-md-checkmark-circle"></i>
+                                break;
+                            case TestStatus.Failed:
+                                <i class="text-danger ion ion-ios-close-circle"></i>
+                                break;
+                            case TestStatus.Error:
+                                <i class="text-warning ion ion-ios-close-circle"></i>
+                                break;
+                        }
+                        Linux (@linux.Date.Humanize(true, DateTime.Now))
+
+                    </th>
+                }
+              
+                @if (win10 != null)
+                {
+                    <th>
+                        @switch (win10.Status)
+                        {
+                            case TestStatus.Unidentified:
+                                <i class="fas fa-exclamation-triangle"></i>
+                                break;
+                            case TestStatus.Passed:
+                                <i class="text-success ion ion-md-checkmark-circle"></i>
+                                break;
+                            case TestStatus.Failed:
+                                <i class="text-danger ion ion-ios-close-circle"></i>
+                                break;
+                            case TestStatus.Error:
+                                <i class="text-warning ion ion-ios-close-circle"></i>
+                                break;
+                        }
+                        Windows 10 (@win10.Date.Humanize(true, DateTime.Now))
+                    </th>
+                }
+                @if (win7 != null)
+                {
+                    <th>
+                        @switch (win7.Status)
+                        {
+                            case TestStatus.Unidentified:
+                                <i class="fas fa-exclamation-triangle"></i>
+                                break;
+                            case TestStatus.Passed:
+                                <i class="text-success ion ion-md-checkmark-circle"></i>
+                                break;
+                            case TestStatus.Failed:
+                                <i class="text-danger ion ion-ios-close-circle"></i>
+                                break;
+                            case TestStatus.Error:
+                                <i class="text-warning ion ion-ios-close-circle"></i>
+                                break;
+                        }
+                        Windows 7 (@win7.Date.Humanize(true, DateTime.Now))
+                    </th>
+                }
+              
+            </tr>
+            </thead>
+            <tbody>
+            @for (var index = 0; index < maxsteps; index++)
+            {
+                <tr>
+                    <td>@counter</td>
+                    @if (osx != null)
+                    {
+                        <td>@try
+                            {
+                                var step = osx?.Steps.OrderBy(p => p.DateTime).ToArray()[index]; 
+                                <span class="@(step.IsPassed?"":"text-danger selectable")" data-stepid="@step.StepId">@step.Message</span>
+                            } catch{}
+                        </td>
+                    }
+                     
+                    @if(linux!=null)
+                    {
+                    <td>@try
+                        {
+                            var step = linux?.Steps.OrderBy(p => p.DateTime).ToArray()[index]; 
+                            <span class="@(step.IsPassed?"":"text-danger selectable")" data-stepid="@step.StepId">@step.Message</span>
+
+                        } catch{} 
+                    </td>
+                    }
+                    @if (win10!=null)
+                    {
+                        <td>@try
+                            {
+                                var step = win10?.Steps.OrderBy(p => p.DateTime).ToArray()[index]; 
+                                <span class="@(step.IsPassed?"":"text-danger selectable")" data-stepid="@step.StepId">@step.Message</span>
+
+                            } catch{} 
+                        </td>
+                    }
+                    @if (win7!=null)
+                    {
+                     <td>@try
+                        {
+                            var step = win7?.Steps.OrderBy(p => p.DateTime).ToArray()[index]; 
+                            <span class="@(step.IsPassed?"":"text-danger selectable")" data-stepid="@step.StepId">@step.Message</span>
+
+                        } catch{} 
+                    </td>
+                    }
+                </tr>
+                {
+                    counter++;
+                }
+            }
+          
+            </tbody>
+        </table>

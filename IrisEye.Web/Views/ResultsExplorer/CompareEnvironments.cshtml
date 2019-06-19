@@ -1,0 +1,43 @@
+@using Humanizer
+@using IrisEye.Data.Extensions
+@model IEnumerable<ViewTest>  
+
+@{
+    ViewBag.Title = "Results Comparison";
+    Layout = "_Layout";
+}
+
+<div class="container-fluid flex-grow-1 container-p-y">
+
+    <h4 class="font-weight-bold py-3 mb-4">
+        <span class="text-muted font-weight-light">Results explorer /</span> Results Comparison
+    </h4>
+    <div class="row">
+        <div class="p-4 p-md-5">
+            <span class="text-dark text-large font-weight-semibold">@Model.FirstOrDefault()?.Name - @Model.FirstOrDefault()?.Description</span> 
+            <div class="d-flex flex-wrap mt-3">
+                <div class="mr-3"><i class="ion ion-md-filing text-light" title="Suite"></i>&nbsp; @(Model.FirstOrDefault()?.SuitName)</div>
+                <div class="mr-3"><i class="ion ion-md-person text-light" title="Author"></i>&nbsp; @(Model.FirstOrDefault()?.Author)</div>
+            </div>
+        </div>
+
+        @await Html.PartialAsync("ResultsExplorer/_ResultsComparisonPartial", Model)
+    </div>
+</div>
+
+<script>
+    $('.stacktrace').click(function() {
+        var message = $(this).data("stacktrace");
+        if (!message) {
+            message = "NOT FOUND";
+        }
+
+
+        Swal.fire({
+            title: 'Stacktrace',
+            html: "<div style=font-size:14px align='left'>" + message.replace(new RegExp("<<", "g"), "<br />") + "</div>",
+            type: 'info',
+            width: '800px'
+        });
+    });
+</script>

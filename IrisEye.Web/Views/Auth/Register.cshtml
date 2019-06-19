@@ -1,0 +1,47 @@
+@{
+    ViewData["Title"] = "Sign In";
+    Layout = "_AuthLayout";
+}
+@model RegisterViewModel
+
+<h4 class="text-center text-lighter font-weight-normal mt-5 mb-0">Create an Account</h4>
+
+<!-- Form -->
+<form asp-action="Register" class="my-5" method="post">
+    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+    <div class="form-group">
+        <label class="form-label" asp-for="Name"></label>
+        <input type="text" class="form-control" asp-for="Name">
+        <span style="font-size: 10px" asp-validation-for="Name" class="invalid-feedback"></span>
+    </div>
+    <div class="form-group">
+        <label class="form-label" asp-for="Email"></label>
+        <input type="email" class="form-control" asp-for="Email">
+        <span style="font-size: 10px" asp-validation-for="Email" class="invalid-feedback"></span>
+    </div>
+    <div class="form-group">
+        <label class="form-label" asp-for="Password"></label>
+        <input type="password" class="form-control" asp-for="Password">
+        <span style="font-size: 10px" asp-validation-for="Password" class="invalid-feedback"></span>
+    </div>
+    <div class="form-group">
+        <label class="form-label" asp-for="ConfirmPassword"></label>
+        <input type="password" class="form-control" asp-for="ConfirmPassword">
+        <span style="font-size: 10px" asp-validation-for="ConfirmPassword" class="invalid-feedback"></span>
+    </div>
+
+    <button type="submit" class="btn btn-primary btn-block mt-4">Sign Up</button>
+    <div class="text-light small mt-4">
+        By clicking "Sign Up", you agree to our
+        <a href="javascript:void(0)">terms of service and privacy policy</a>
+    </div>
+</form>
+<!-- / Form -->
+
+<div class="text-center text-muted">
+    Already have an account? <a asp-action="Index">Sign In</a>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

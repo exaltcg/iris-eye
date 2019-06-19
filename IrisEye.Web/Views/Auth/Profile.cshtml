@@ -1,0 +1,173 @@
+@using IrisEye.Data.Extensions
+@model UserProfileViewModel
+
+@{
+    ViewBag.Title = "User's profile";
+    Layout = "_Layout";
+}
+
+<div class="container-fluid flex-grow-1 container-p-y">
+
+<h4 class="py-3 mb-4">
+    <ol class="breadcrumb font-weight-bold m-0">
+        <li class="breadcrumb-item">User's profile</li>
+    </ol>
+</h4>
+    
+<div class="row">
+<div class="col-xl-4">
+
+    <!-- Side info -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="media">
+                <img src="https://github.com/@string.Concat(Model.User.GitHubAccount, ".png")" alt="" class="ui-w-60 rounded-circle">
+                <div class="media-body pt-2 ml-3">
+                    <h5 class="mb-2">@Model.User.Name</h5>
+                    <div class="text-muted small">Exalt Team</div>
+
+                    <div class="mt-2">
+                        <a target="_blank" href="https://github.com/@Model.User.GitHubAccount" class="text-instagram">
+                            <span class="ion ion-logo-github"></span>
+                        </a>
+                    </div>
+
+                    <div class="mt-3">
+                        <a href="javascript:void(0)" class="btn btn-primary btn-sm btn-round">+&nbsp; Follow</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <hr class="border-light m-0">
+        @*<div class="card-body">
+            <div class="mb-2">
+                <span class="text-muted">Birthday:</span>&nbsp;
+                May 3, 1995
+            </div>
+            <div class="mb-2">
+                <span class="text-muted">Country:</span>&nbsp;
+                <a href="javascript:void(0)" class="text-dark">Canada</a>
+            </div>
+            <div class="mb-2">
+                <span class="text-muted">Languages:</span>&nbsp;
+                <a href="javascript:void(0)" class="text-dark">English</a>
+            </div>
+            <div class="mb-4">
+                <span class="text-muted">Phone:</span>&nbsp;
+                +0 (123) 456 7891
+            </div>
+            <div class="text-muted">
+                Lorem ipsum dolor sit amet, nibh suavitate qualisque ut nam. Ad harum primis electram duo, porro principes ei has.
+            </div>
+        </div>*@
+    </div>
+    <!-- / Side info -->
+
+    <!-- Links -->
+    <div class="card mb-4">
+        <div class="card-header">Links</div>
+        <div class="card-body">
+
+            <div class="media align-items-center pb-1 mb-3">
+                <i class="icon ion-logo-github"></i>
+                <div class="media-body flex-truncate ml-3">
+                    <a target="_blank" href="https://github.com/@Model.User.GitHubAccount">GitHub</a>
+                    <div class="text-muted small text-truncate">github.com/@Model.User.GitHubAccount</div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+    <!-- / Links -->
+
+    <!-- Friends -->
+    @*<div class="card mb-4">
+        <div class="card-header">Friends</div>
+        <div class="card-body">
+
+            <div class="media align-items-center pb-1 mb-3">
+                <img src="assets/img/avatars/2-small.png" class="d-block ui-w-40 rounded-circle" alt="">
+                <div class="media-body ml-3">
+                    <a href="javascript:void(0)" class="text-dark">Leon Wilson</a>
+                    <div class="text-muted small">lwilson</div>
+                </div>
+                <a href="javascript:void(0)" class="btn btn-sm btn-default md-btn-flat d-block">Follow</a>
+            </div>
+
+        </div>
+    </div>*@
+    <!-- / Friends -->
+
+</div>
+<div class="col">
+
+    <!-- Info -->
+    <div class="row no-gutters row-bordered ui-bordered text-center mb-4">
+        <a asp-action="Profile" asp-controller="Auth" asp-route-id="@Model.User.Id" asp-route-filter="ta" class="d-flex col flex-column text-dark py-3">
+            <div class="font-weight-bold">@Model.TotalAutomated</div>
+            <div class="text-muted small">Total Automated</div>
+        </a>
+        <a asp-action="Profile" asp-controller="Auth" asp-route-id="@Model.User.Id" asp-route-filter="tr" class="d-flex col flex-column text-dark py-3">
+            <div class="font-weight-bold">@Model.TotalReviewed</div>
+            <div class="text-muted small">Total Reviewed</div>
+        </a>
+        <a asp-action="Profile" asp-controller="Auth" asp-route-id="@Model.User.Id" asp-route-filter="ip" class="d-flex col flex-column text-dark py-3">
+            <div class="font-weight-bold">@Model.InProgress</div>
+            <div class="text-muted small">In Progress</div>
+        </a>
+        <a asp-action="Profile" asp-controller="Auth" asp-route-id="@Model.User.Id" asp-route-filter="ir" class="d-flex col flex-column text-dark py-3">
+            <div class="font-weight-bold">@Model.InReview</div>
+            <div class="text-muted small">In Review</div>
+        </a>
+    </div>
+    <!-- / Info -->
+
+    <!-- Posts -->
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <table style="font-size: 12px" class="table table-striped table-sm">
+                <thead>
+                <tr>
+                    <th>Test</th>
+                    <th>Suite</th>
+                    <th>Status</th>
+                    <th>Assignee</th>
+                    <th>Reviewer</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var test in Model.TestCases)
+                {
+                    <tr>
+                        <td>
+                            <a class="badge badge-outline-@(test.IsIssue?"danger":"success")" target="_blank" href="https://github.com/mozilla/iris/issues/@test.GitHubId"><i class="icon ion-logo-github"></i> @test.GitHubId</a>
+                            <a asp-controller="TestLab" asp-action="TestCase" asp-route-id="@test.Id">@test.Name</a>
+                        </td>
+                        <td><a asp-controller="TestLab" asp-action="TestSuite" asp-route-id="@test.TestSuite.Id">@test.TestSuite.Name</a></td>
+                        <td>@test.Status.GetDescription()</td>
+                        <td><a asp-action="Profile" asp-controller="Auth" asp-route-id="@test.Assignee?.Id">@test.Assignee?.Name</a></td>
+                        <td><a asp-action="Profile" asp-controller="Auth" asp-route-id="@test.Reviewer?.Id">@test.Reviewer?.Name</a></td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- / Posts -->
+
+</div>
+</div>
+    
+</div>
+
+<script type="text/javascript">
+    $(document).ready(function() {
+
+        $('.table').dataTable({
+            order: []
+        });
+
+    });
+</script>

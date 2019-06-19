@@ -1,0 +1,105 @@
+@{
+    ViewData["Title"] = "Tests explorer";
+}
+@using Humanizer
+@using IrisEye.Data.Extensions
+@using IrisEye.Data.Parsers
+@using IrisEye.Web.Providers
+@model TestsExplorerViewModel
+
+
+<div class="container-fluid flex-grow-1 container-p-y">
+
+    <h4 class="font-weight-bold py-3 mb-4">
+        <span class="text-muted font-weight-light">Results explorer /</span> <a asp-controller="Home" asp-action="TestsExplorer" asp-route-id="@Model.RunId">@Model.Environment.ToUpper() (@Model.ReportTime)</a>
+    </h4>
+    <div class="row">
+        <div class="col-md-4 col-lg-4 col-xl-3">
+            <div class="ui-bordered mb-4" style="font-size: 10px">
+                @foreach(var suit in Model.TestSets.OrderBy(p=>p.Id)) {
+                    <div class="d-flex align-items-center w-100 bg-lighter font-weight-bold py-2 px-3">
+                        <i class="ion ion-ios-filing ui-w-20 mr-1"></i>
+                        <a asp-controller="Home" asp-action="TestsExplorer" asp-route-id="@Model.RunId" asp-route-suit="@suit.Name" class="d-block text-dark">
+                            @if (Model.SelectedSuite == suit.Name)
+                            {
+                                <strong class="text-primary">@suit.Name.Replace("_", " ")</strong>   
+                            }
+                            else
+                            {
+                                @suit.Name.Replace("_", " ")
+                            }
+                             
+                        </a>
+                        <div class="pl-1 ml-auto">
+                            <div class="badge badge-primary">@suit.Tests.Count</div>
+                            <div class="badge badge-danger">
+                                @if(@suit.FailedTests!=0){
+                                    <a asp-controller="Home" asp-action="TestsExplorer" asp-route-id="@Model.RunId" asp-route-suit="@suit.Name" asp-route-failedOnly="true" class="d-block text-white">@suit.FailedTests</a>
+                                }
+                                else
+                                {
+                                    <text>0</text>
+                                }
+                            </div>
+                            <div class="badge badge-warning">0</div>
+                        </div>
+
+                    </div>
+                }
+            </div>
+        </div>
+        <div class="col-md-8 col-lg-8 col-xl-9">
+            <div class="card">
+                <table class="table table-bordered table-dark table-sm" style="font-size: 12px;">
+                    <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Run Time</th>
+                        <th>Message</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var test in Model.FilteredTestSets.SelectMany(p=>p.Tests))
+                    {
+                        <tr class="@((test.Failed) ? "bg-danger" : "bg-success" )">
+                            <td class="text-center" colspan="3">
+                                <span class="d-inline-block text-truncate" style="max-width: 500px;">@test.Name - @test.Description</span><br/>
+                                <span class="d-inline-block text-truncate" >By: @test.Author</span>
+                            </td>
+                        </tr>
+                        var counter = 1;
+                        foreach (var step in test.Steps.OrderBy(p => p.DateTime))
+                        {
+                            <tr class="@((!step.IsPassed) ? "text-danger" : "" )">
+                                <td>@counter</td>
+                                <td>@step.DateTime.ToString("h:mm:ss tt")</td>
+                                <td><a style="cursor: pointer" data-stacktrace="@step.StackTrace" class="stacktrace">@step.Message</a></td>
+                            </tr>
+                            {
+                                counter++;
+                            }
+                        }
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    $('.stacktrace').click(function() {
+        var message = $(this).data("stacktrace");
+        if (!message) {
+            message = "NOT FOUND";
+        }
+
+
+        Swal.fire({
+            title: 'Stacktrace',
+            html: "<div style=font-size:14px align='left'>" + message.replace(new RegExp("<<", "g"), "<br />") + "</div>",
+            type: 'info',
+            width: '800px'
+        });
+    });
+</script>

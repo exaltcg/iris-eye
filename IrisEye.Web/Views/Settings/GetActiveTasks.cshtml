@@ -1,0 +1,30 @@
+@using System.Collections
+@using System.IO
+@model IEnumerable<FluentScheduler.Schedule>
+
+@{
+    ViewBag.Title = "Active tasks";
+    Layout = "_Layout";
+}
+
+<table class="table table-sm table-striped">
+    <thead>
+    <tr>
+        <th>Task</th>
+        <th>Next Run</th>
+        <th>Actions</th>
+    </tr>
+    </thead>
+    <tbody>
+    @foreach (var schedule in Model)
+    {
+        <tr>
+            <td>@schedule.Name</td>
+            <td>@(schedule.NextRun - DateTime.Now)</td>
+            <td><a asp-action="RunScheduleNow" asp-route-name="@schedule.Name" class="btn btn-default">Run now</a></td>
+        </tr>
+    }
+    </tbody>
+</table>
+
+@System.IO.Path.GetTempPath()

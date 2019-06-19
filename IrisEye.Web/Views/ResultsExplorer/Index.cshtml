@@ -1,0 +1,161 @@
+@using Humanizer
+@using IrisEye.Core.Entities
+@using IrisEye.Data.Extensions
+@using IrisEye.Web.Enums
+@using Microsoft.EntityFrameworkCore.Internal
+@using Microsoft.EntityFrameworkCore.SqlServer.Query.ExpressionTranslators.Internal
+@using RestSharp.Extensions
+@model TestsExplorerViewModel
+
+@{
+    ViewBag.Title = "Results Explorer";
+    Layout = "_Layout";
+}
+
+
+
+<div class="container-fluid flex-grow-1 container-p-y">
+
+    <h4 class="font-weight-bold py-3 mb-4">
+        <span class="text-muted font-weight-light">Results explorer </span> / <a asp-controller="ResultsExplorer" asp-action="Index" asp-route-id="@Model.RunId">@Model.Environment.ConvertEnvironment() (@Model.ReportTime)</a>
+    </h4>
+    
+    <div class="row">
+        <div class="col-md-4 col-lg-4 col-xl-3">
+
+            <div class="ui-bordered mb-4">
+                @foreach (var suite in @Model.TestSets.OrderBy(p=>p.Id).Take(2))
+                {
+                    <div class="@(Model.SelectedSuite==suite.Name?"d-flex align-items-center w-100 bg-lighter font-weight-bold py-2 px-3":"d-flex align-items-center w-100 py-2 px-3")">
+                        <i class="ion ion-ios-filing ui-w-20 mr-1"></i>
+                        <a asp-action="Index" asp-controller="ResultsExplorer" asp-route-suit="@suite.Name" class="d-block text-dark">@suite.Name.Replace("_", " ")</a>
+                    </div>
+                    
+                }
+                @foreach (var suite in @Model.TestSets.Where(p=>p.Id!=-1 && p.Id!=0).OrderBy(p=>p.Name))
+                {
+                    <div class="@(Model.SelectedSuite==suite.Name?"d-flex align-items-center w-100 bg-lighter font-weight-bold py-2 px-3":"d-flex align-items-center w-100 py-2 px-3")">
+                        <i class="ion ion-ios-filing ui-w-20 mr-1"></i>
+                        <a asp-action="Index" asp-controller="ResultsExplorer" asp-route-suit="@suite.Name" class="d-block text-dark">@suite.Name.Replace("_", " ")</a>
+                    </div>
+                    
+                }
+
+                <ul class="nav nav-sm nav-tabs tabs-alt nav-justified mt-3">
+                    <li class="nav-item">
+                        <a class="nav-link active" data-toggle="tab" href="#tasks-projects">Filters</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-toggle="tab" href="#tasks-tags">Tags</a>
+                    </li>
+                </ul>
+
+                <div class="tab-content">
+                    <div class="tab-pane fade show active" id="tasks-projects">
+                        <div class="py-3">
+                            <div class="py-2 px-3">
+                                <p>Authors</p>
+                            </div>
+                            @foreach (var user in Model.Users.Where(p=>!p.Contains("@")))
+                            {
+                                <div class="@(user==Model.UserFilter?"d-flex align-items-center w-100 bg-lighter font-weight-bold py-2 px-3":"d-flex align-items-center w-100 py-2 px-3")">
+                                    <i class="fas fa-user ui-w-20 mr-1"></i>
+                                    <a class="d-block text-dark" asp-controller="ResultsExplorer" asp-action="Index" asp-route-id="@Model.RunId" asp-route-suit="@Model.SelectedSuite" asp-route-filterOption="@((int)Model.TestExplorerFilter)" asp-route-userFilter="@user">@user</a>
+                                </div>
+                            }
+                            
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="tasks-tags">
+                        <div class="py-3">
+                            <div class="py-2 px-3">
+                                <a href="javascript:void(0)" class="text-dark">#alpha</a>
+                                <a href="javascript:void(0)" class="text-dark">#beta</a>
+                                <a href="javascript:void(0)" class="text-dark">#charlie</a>
+                                <a href="javascript:void(0)" class="text-dark">#delta</a>
+                            </div>
+                            <a href="javascript:void(0)" class="d-block text-light small py-2 px-3"><i class="ion ion-md-add"></i>&nbsp; Add tag</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        <div class="col-md-9">
+
+            <div class="card">
+                <div class="card-header with-elements py-3">
+                    <span class="card-header-title mr-2">@Model.ReportTime.Humanize() - @Model.Environment.ConvertEnvironment() <span class="text-muted small">(page @Model.Pager.CurrentPage of @Model.Pager.TotalItems results@(Model.Query!=null?$@" by keywords: {Model.Query}":""))</span></span>
+                    <div class="card-header-elements ml-md-auto">
+                        @{
+                            var selectedSuite = Model.TestSets.FirstOrDefault(p => p.Name == Model.SelectedSuite);
+                        }
+                        <span class="badge @(Model.TestExplorerFilter == TestExplorerFilter.Total?"badge-primary":"badge-outline-primary")"><a class="@(Model.TestExplorerFilter == TestExplorerFilter.Total?"text-white":"")" asp-controller="ResultsExplorer" asp-action="Index" asp-route-filterOption="0" asp-route-suit="@selectedSuite?.Name" asp-route-userFilter="@Model.UserFilter">Total @selectedSuite?.Tests.Count</a></span>
+                        <span class="badge @(Model.TestExplorerFilter == TestExplorerFilter.Passed?"badge-success":"badge-outline-success")"><a class="@(Model.TestExplorerFilter == TestExplorerFilter.Passed?"text-white":"")" asp-controller="ResultsExplorer" asp-action="Index" asp-route-filterOption="1" asp-route-suit="@selectedSuite?.Name" asp-route-userFilter="@Model.UserFilter">Passed @selectedSuite?.Tests.Count(p=>p.Status==TestStatus.Passed)</a></span>
+                        <span class="badge @(Model.TestExplorerFilter == TestExplorerFilter.Failed?"badge-danger":"badge-outline-danger")"><a class="@(Model.TestExplorerFilter == TestExplorerFilter.Failed?"text-white":"")" asp-controller="ResultsExplorer" asp-action="Index" asp-route-filterOption="2" asp-route-suit="@selectedSuite?.Name" asp-route-userFilter="@Model.UserFilter">Failed @selectedSuite?.Tests.Count(p=>p.Status==TestStatus.Failed)</a></span>
+                        <span class="badge @(Model.TestExplorerFilter == TestExplorerFilter.Errors?"badge-warning":"badge-outline-warning")"><a class="@(Model.TestExplorerFilter == TestExplorerFilter.Errors?"text-white":"")" asp-controller="ResultsExplorer" asp-action="Index" asp-route-filterOption="3" asp-route-suit="@selectedSuite?.Name" asp-route-userFilter="@Model.UserFilter">Errors @selectedSuite?.Tests.Count(p=>p.Status==TestStatus.Error)</a></span>
+
+                    </div>
+                </div>
+                @{
+                    var tests = Model.FilteredTestSets.SelectMany(p => p.Tests).Page(Model.Pager.CurrentPage, Model.Pager.PageSize).ToList();
+                }
+
+                <div class="card-body">
+                    @foreach (var item in tests)
+                    {
+                        @await Html.PartialAsync("_ResultsExplorerTestPartial",item)
+                      
+                        
+                        
+                        if (!(tests.IndexOf(item) == tests.Count() - 1))
+                        {
+                            <hr class="border-light m-0">
+                        }
+                             
+
+                    }
+                </div>
+                <div class="card-footer">
+                    <div class="d-flex justify-content-center">
+                        @if(Model.FilteredTestSets.SelectMany(p=>p.Tests).Any()){
+                        <ul class="pagination pagination-lg">
+                            <li class="page-item @(Model.Pager.CurrentPage == 1 ? "disabled" : "")">
+                                <a class="page-link" asp-controller="ResultsExplorer" asp-action="Index" asp-route-id="@Model.RunId" asp-route-suit="@Model.SelectedSuite" asp-route-filterOption="@((int)Model.TestExplorerFilter)" asp-route-page="@(Model.Pager.CurrentPage - 1)" asp-route-userFilter="@Model.UserFilter">«</a>
+                            </li>
+                            @foreach (var p in Model.Pager.Pages)
+                            {
+                                <li class="page-item @(Model.Pager.CurrentPage == p ? "active" : "")">
+                                    <a class="page-link" asp-controller="ResultsExplorer" asp-action="Index" asp-route-id="@Model.RunId" asp-route-suit="@Model.SelectedSuite" asp-route-filterOption="@((int)Model.TestExplorerFilter)" asp-route-page="@p" asp-route-userFilter="@Model.UserFilter">@p</a>
+                                </li>
+                            }
+                            <li class="page-item @(Model.Pager.CurrentPage == Model.Pager.TotalPages ? "disabled" : "")">
+                                <a class="page-link" asp-controller="ResultsExplorer" asp-action="Index" asp-route-id="@Model.RunId" asp-route-suit="@Model.SelectedSuite" asp-route-filterOption="@((int)Model.TestExplorerFilter)" asp-route-page="@(Model.Pager.CurrentPage+1)" asp-route-userFilter="@Model.UserFilter">»</a>
+                            </li>
+                        </ul>
+                        }
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+<script>
+    $('.stacktrace').click(function() {
+        var message = $(this).data("stacktrace");
+        if (!message) {
+            message = "NOT FOUND";
+        }
+
+
+        Swal.fire({
+            title: 'Stacktrace',
+            html: "<div style=font-size:14px align='left'>" + message.replace(new RegExp("<<", "g"), "<br />") + "</div>",
+            type: 'info',
+            width: '800px'
+        });
+    });
+</script>

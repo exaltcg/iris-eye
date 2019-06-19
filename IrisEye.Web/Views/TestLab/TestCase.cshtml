@@ -1,0 +1,446 @@
+@using Humanizer
+@using IrisEye.Core.Entities
+@using IrisEye.Data.Extensions
+@using IrisEye.Web.Utils
+@using LibGit2Sharp
+@using Microsoft.EntityFrameworkCore.Metadata.Conventions.Internal
+@model TestCaseViewModel
+
+@{
+    ViewBag.Title = $@"Test[{Model.TestCase.Name}]";
+    Layout = "_Layout";
+}
+
+<div class="container-fluid flex-grow-1 container-p-y">
+
+<h4 class="py-3 mb-4">
+    <ol class="breadcrumb font-weight-bold m-0">
+        <li class="breadcrumb-item"><a asp-action="Index" asp-controller="TestLab">Test Lab</a></li>
+        <li class="breadcrumb-item"><a asp-action="TestSuite" asp-controller="TestLab" asp-route-id="@Model.TestCase.TestSuite.Id">@Model.TestCase.TestSuite.Name</a></li>
+        <li class="breadcrumb-item active">@Model.TestCase.Name</li>
+    </ol>
+</h4>
+    
+<div class="row">
+<div class="col-12 col-md-9">
+
+    <!-- Tabs -->
+    <div class="nav-tabs-top mb-4">
+        <ul class="nav nav-tabs">
+            <li class="nav-item">
+                <a class="nav-link active" data-toggle="tab" href="#project-tasks">@(Model.TestCase.IsIssue?"Description":"Steps")</a>
+            </li>
+            @if(!Model.TestCase.IsIssue)
+            {
+                <li class="nav-item">
+                    <a class="nav-link" data-toggle="tab" href="#project-discussion">Template</a>
+                </li>
+            }
+            <li class="nav-item">
+                <a class="nav-link" data-toggle="tab" href="#issue-comments">Discussion</a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link" data-toggle="tab" href="#project-activity">Activity</a>
+            </li>
+        </ul>
+        <div class="tab-content">
+
+            <!-- Steps -->
+            <div class="tab-pane fade show active" id="project-tasks">
+
+                <div class="card-body">
+                    @{
+                        var counter = 1;
+                    }
+                    @if (Model.TestCase.Preconditions != null)
+                    {
+                        <strong>Preconditions: </strong>
+                        @Model.TestCase.Preconditions
+                        <br/><br/>
+                    }
+                    @if (Model.TestCase.IsIssue)
+                    {
+
+                        @Html.Raw(Model.TestCase.Message.Replace("\n", "<br />"))
+
+                    }
+                    else
+                    {
+                        foreach (var item in Model.TestCase.TestSteps.OrderBy(p => p.SortIndex))
+                        {
+                            <div class="media mb-3">
+                                <div>
+                                    <div class="text-muted small text-nowrap mt-2"># @counter</div>
+                                </div>
+                                <div class="media-body bg-lighter rounded py-2 px-3 ml-3">
+                                    <div class="font-weight-semibold mb-1">@item.Actual</div>
+                                    @item.Expected
+                                </div>
+                            </div>
+                            {
+                                counter++;
+                            }
+                        }
+                        <a asp-action="RefreshSteps" asp-controller="TestLab" asp-route-id="@Model.TestCase.Id" class="btn btn-success">Refresh Steps</a>
+                    }
+                </div>
+
+            </div>
+            <!-- / Steps -->
+
+            <!-- Template -->
+            <div class="tab-pane fade" id="project-discussion">
+                <div class="card-body">
+                    
+                    Suggested file name: <strong>@Model.TestCase.Name.ClearTestName()</strong><strong>.py</strong><br/><br/>
+                    <pre>
+<code>
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this file,
+# You can obtain one at http://mozilla.org/MPL/2.0/.
+
+
+from iris.test_case import *
+
+
+class Test(BaseTest):
+
+    def __init__(self):
+        BaseTest.__init__(self)
+        self.meta = '@Model.TestCase.Name.Replace("'",@"\'")'
+        self.test_case_id = '@Model.TestCase.TestRailId'
+        self.test_suite_id = '@Model.TestCase.TestSuite.TestRailId'
+        self.locales = ['en-US']
+
+</code>
+</pre>
+                </div>
+            </div>
+            <!-- / Template -->
+
+            <!-- Comments -->
+            <div class="tab-pane fade" id="issue-comments">
+                <div id="message-body" class="card-body">
+                    @await Html.PartialAsync("_TestCaseCommentsPartial", Model.TestCase)
+                </div>
+                <div class="card-footer">
+                    <div id="message-controls" class="input-group">
+                        <input id="message-text" type="text" class="form-control" placeholder="Type your message">
+                        <div class="input-group-append">
+                            <button id="send-message" type="button" class="btn btn-primary">Send</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- / Template -->
+
+            <!-- Activity -->
+            <div class="tab-pane fade" id="project-activity">
+                <div class="card-body">
+                    @foreach (var item in Model.TestCase.HistoryItems.OrderByDescending(p=>p.AddedOn))
+                    {
+                        <div class="media pb-1 mb-3">
+                            <div class="ui-feed-icon-container">
+                                <span class="ui-icon ui-feed-icon ion ion-md-code bg-warning text-dark"></span>
+                                @if (item.Author != null)
+                                {
+                                    <img src="@string.Concat("https://github.com/", item.Author?.GitHubAccount, ".png")" class="ui-w-40 rounded-circle" alt>
+                                }
+                                else
+                                {
+                                    <img src="~/assets/robot.png" class="ui-w-40 rounded-circle" alt>
+                                }
+                            </div>
+                            <div class="media-body align-self-center ml-3">
+                                @if (item.Author!=null)
+                                {
+                                    <a asp-controller="Auth" asp-action="Profile" asp-route-id="@item.Author.Id">@item.Author?.Name</a> 
+                                }
+                                else
+                                {
+                                    <strong>[SYSTEM]</strong>
+                                }
+                                @Html.Raw(item.Message)
+                                <div class="text-muted small">@item.AddedOn.Humanize(false, DateTime.Now)</div>
+                            </div>
+                        </div>    
+                    }
+                    
+
+                </div>
+            </div>
+            <!-- / Activity -->
+
+        </div>
+    </div>
+    <!-- / Tabs -->
+
+</div>
+<div class="col">
+    <div style="font-size: 12px" class="card mb-4">
+        <h6 class="card-header">Details</h6>
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <div class="text-muted">Status</div>
+                <div>
+                    @if (User.Identity.IsAuthenticated)
+                    {
+                        @await Html.PartialAsync("_SwitchStateDropDownPartial", Model.TestCase)
+                    } else {
+                        <strong>@Model.TestCase.Status.GetDescription()</strong>
+                    }
+                </div>
+            </li>
+
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <div class="text-muted">Assignee</div>
+                <div>
+                    @if (User.Identity.IsAuthenticated)
+                    {
+
+                        <div class="btn-group">
+                            <button class="btn btn-default btn-xs dropdown-toggle" type="button" data-toggle="dropdown">@(Model.TestCase.Assignee != null ? Model.TestCase.Assignee.Name : "Not Set")</button>
+                            <div class="dropdown-menu">
+                                @foreach (var user in Model.Users.Where(p => p != Model.TestCase.Reviewer))
+                                {
+                                    <a class="dropdown-item" asp-action="UpdateAssignee" asp-controller="TestLab" asp-route-userId="@user.Id" asp-route-testId="@Model.TestCase.Id">@user.Name</a>
+                                }
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <strong>@Model.TestCase?.Assignee?.Name</strong>
+                    }
+                </div>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <div class="text-muted">Reviewer</div>
+                <div>
+                    @if (User.Identity.IsAuthenticated)
+                    {
+                        <div class="btn-group">
+                            <button class="btn btn-default btn-xs dropdown-toggle" type="button" data-toggle="dropdown">@(Model.TestCase.Reviewer != null ? Model.TestCase.Reviewer.Name : "Not Set")</button>
+                            <div class="dropdown-menu">
+                                @foreach (var user in Model.Users.Where(p => p != Model.TestCase.Assignee))
+                                {
+                                    <a class="dropdown-item" asp-action="UpdateReviewer" asp-controller="TestLab" asp-route-userId="@user.Id" asp-route-testId="@Model.TestCase.Id">@user.Name</a>
+                                }
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <strong>@Model.TestCase?.Reviewer?.Name</strong>
+                    }
+
+                </div>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <div class="text-muted">GitHub</div>
+                <div><a target="_blank" href="https://github.com/mozilla/iris/issues/@Model.TestCase.GitHubId">@Model.TestCase.GitHubId</a></div>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <div class="text-muted">Branch</div>
+                <div>
+                    @{
+                        var branch = StaticHelper.GetBranch("issue_" + Model.TestCase.GitHubId);
+                    }
+                    @if (branch.name!=null)
+                    {
+                        <a target="_blank" href="https://github.com/mozilla/iris/tree/issue_@Model.TestCase.GitHubId">issue_@Model.TestCase.GitHubId <i class="text-success ion ion-md-checkmark-circle"></i></a>
+                    }
+                    else
+                    {
+                        <strong>issue_@Model.TestCase.GitHubId <i class="text-danger ion ion-ios-close-circle"></i></strong>
+                    }
+                </div>
+            </li>
+
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <div class="text-muted">Test Rail</div>
+                <div>
+                    @if (Model.TestCase.TestRailId!=0)
+                    {
+                        <a target="_blank" href="https://testrail.stage.mozaws.net/index.php?/cases/view/@Model.TestCase.TestRailId">@Model.TestCase.TestRailId</a>
+                    }
+                    else
+                    {
+                        <i>Not Set</i>
+                    }
+                </div>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <div class="text-muted">Pull Request</div>
+                <div>
+                    @if (Model.TestCase.PullRequestId!=0)
+                    {
+                        <a target="_blank" href="https://github.com/mozilla/iris/pull/@Model.TestCase.PullRequestId">@Model.TestCase.PullRequestId<span class="badge badge-primary">@StaticHelper.GetPullRequest(Model.TestCase.PullRequestId).state</span></a>
+                    }
+                    else
+                    {
+                        <i>Not Set</i>
+                    }
+                </div>
+            </li>
+
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <div class="text-muted">Created</div>
+                <div>@Model.TestCase?.HistoryItems?.OrderBy(p=>p.AddedOn).FirstOrDefault()?.AddedOn.Humanize(false, DateTime.Now)</div>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <div class="text-muted">Last update</div>
+                <div>@Model.TestCase?.HistoryItems?.OrderByDescending(p=>p.AddedOn).FirstOrDefault()?.AddedOn.Humanize(false, DateTime.Now)</div>
+            </li>
+            @if(Model.TestCase.Status!=Status.Closed)
+            {
+                <li class="list-group-item d-flex justify-content-center align-items-center">
+                    <a asp-controller="TestLab" asp-action="CloseTestCase" asp-route-id="@Model.TestCase.Id" class="btn btn-danger btn-xs d-block">Close Issue</a>
+                </li>
+            }
+            @if (Model.TestCase.Status == Status.Closed || Model.TestCase.MergedDate.HasValue)
+            {
+                <li class="list-group-item d-flex justify-content-center align-items-center">
+                    <a asp-controller="TestLab" asp-action="ReopenTestCase" asp-route-id="@Model.TestCase.Id" class="btn btn-warning btn-xs d-block">Re-open Issue</a>
+                </li>
+            }
+        </ul>
+    </div>
+</div>
+        
+</div>
+
+<div class="row">
+    <div class="col-12 col-md-6">
+        <div class="card">
+            <h6 class="card-header">
+                Test messages
+            </h6>
+            <div class="card-body">
+                @foreach (var comment in Model.GitHubComments)
+                {
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <div class="media">
+                                <img src="@comment.user.avatar_url" alt="" class="d-block ui-w-40 rounded-circle">
+                                <div class="media-body ml-4">
+                                    <div class="float-right text-muted small">@comment.created_at.ToString("M")</div>
+                                    <a href="javascript:void(0)">@comment.user.login</a>
+                                    <div class="text-muted small">@comment.created_at.Humanize()</div>
+                                    <div class="mt-2">
+                                        @comment.body
+                                    </div>
+                                    <div class="small mt-2">
+                                        <a href="javascript:void(0)" class="text-light">Reply</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>    
+                }
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-md-6">
+        <div class="card">
+            <h6 class="card-header">
+                Pull Request messages
+            </h6>
+            <div class="card-body">
+                @foreach (var comment in Model.PullRequestComment)
+                {
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <div class="media">
+                                <img src="@comment.user.avatar_url" alt="" class="d-block ui-w-40 rounded-circle">
+                                <div class="media-body ml-4">
+                                    <div class="float-right text-muted small">@comment.submitted_at.ToString("M")</div>
+                                    <a href="javascript:void(0)">@comment.user.login</a>
+                                    <div class="text-muted small">@comment.submitted_at.Humanize()</div>
+                                    <div class="mt-2">
+                                        @comment.body
+                                    </div>
+                                    <div class="small mt-2">
+                                        <a href="javascript:void(0)" class="text-light">Reply</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>    
+                }
+            </div>
+        </div>
+    </div>
+
+</div>
+@if(User.IsInRole(SystemRoles.Administrator))
+{
+    <a class="btn btn-danger btn-lg d-block" asp-action="DeleteTestCase" asp-route-id="@Model.TestCase.Id">DELETE</a>
+}   
+</div>
+
+<script>hljs.initHighlightingOnLoad();</script>
+
+<script>
+    $(document).ready(function() {
+        $('#message-text').on('keydown', function(e) {
+            if (e.which === 13) {
+                $('#send-message').click();
+            }
+        });
+        $('#send-message').click(function() {
+            var inputField = $('#message-text');
+            if (inputField.val() !== '') {
+                $.ajax({   
+                    type: 'POST',
+                    async: true,
+                    url: '@Url.Action("AddComment", "TestLab")',   
+                    data: {'id':@Model.TestCase.Id,'message':inputField.val()},
+                    beforeSend: function() {
+                        blockElement($('#send-message'));
+                        blockElement(inputField);
+                    },
+                    success: function (data) {
+                        $("#message-body").html(data);
+                        inputField.val('');
+                        unBlock($('#send-message'));
+                        unBlock(inputField);
+                    }
+                });    
+            }
+             
+            
+        });
+    });
+    
+    function blockElement(obj) {
+        obj.block({
+            message: '<div class="sk-wave sk-primary"><div class="sk-rect sk-rect1"></div> <div class="sk-rect sk-rect2"></div> <div class="sk-rect sk-rect3"></div> <div class="sk-rect sk-rect4"></div> <div class="sk-rect sk-rect5"></div></div>',
+            css: {
+                backgroundColor: 'transparent',
+                border: '0'
+            },
+            overlayCSS:  {
+                backgroundColor: '#fff',
+                opacity: 0.8
+            }
+        });
+    }
+    
+    function unBlock(obj) {
+        obj.unblock();
+    }
+    
+    $(function(){
+        var hash = window.location.hash;
+        hash && $('ul.nav a[href="' + hash + '"]').tab('show');
+
+        $('.nav-tabs a').click(function (e) {
+            $(this).tab('show');
+            var scrollmem = $('body').scrollTop();
+            window.location.hash = this.hash;
+            $('html,body').scrollTop(scrollmem);
+        });
+    });
+</script>

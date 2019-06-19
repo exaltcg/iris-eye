@@ -1,0 +1,81 @@
+@using IrisEye.Core.Entities
+@using IrisEye.Data.Extensions
+@using IrisEye.Web.Utils
+@model IrisEye.Core.Entities.TestCase
+
+<div class="btn-group">
+    @if (Model.Status == Status.Finished && Model.MergedDate.HasValue)
+    {
+        <button type="button" class="btn btn-xs btn-success dropdown-toggle" data-toggle="dropdown" aria-expanded="false" disabled>Merged</button>
+    }
+    else if (Model.Status == Status.Closed)
+    {
+        <button type="button" class="btn btn-xs btn-danger dropdown-toggle" data-toggle="dropdown" aria-expanded="false" disabled>Closed</button>
+    } else
+    {
+        <button type="button" class="btn btn-xs btn-primary dropdown-toggle" data-toggle="dropdown" aria-expanded="false" >@Model.Status.GetDescription()</button>
+    }
+    
+    <div class="dropdown-menu" x-placement="bottom-start" style="position: absolute; top: 38px; left: 0px; will-change: top, left;">
+        @switch (Model.Status)
+        {
+            case Status.New:
+                <a class="dropdown-item btn-xs" data-state="@((int) Status.ReadyForAutomation)" asp-controller="TestLab" asp-action="SwitchState" asp-route-id="@Model.Id" asp-route-statusId="@((int) Status.ReadyForAutomation)" asp-route-returnurl="@Context.Request.Path">Automation ready</a>
+                <a class="dropdown-item btn-xs" data-state="@((int) Status.CannotAutomate)" asp-controller="TestLab" asp-action="SwitchState" asp-route-id="@Model.Id" asp-route-statusId="@((int) Status.CannotAutomate)" asp-route-returnurl="@Context.Request.Path">Cannot automate</a>
+                break;
+            case Status.ReadyForAutomation:
+                <a class="dropdown-item btn-xs" data-state="@((int) Status.InProgress)" asp-controller="TestLab" asp-action="SwitchState" asp-route-id="@Model.Id" asp-route-statusId="@((int) Status.InProgress)" asp-route-returnurl="@Context.Request.Path">In progress</a>
+                <a class="dropdown-item btn-xs" data-state="@((int) Status.New)" asp-controller="TestLab" asp-action="SwitchState" asp-route-id="@Model.Id" asp-route-statusId="@((int) Status.New)" asp-route-returnurl="@Context.Request.Path">Reset status</a>
+                break;
+            case Status.InProgress:
+                if (User.GetUserId() == Model.Assignee?.EntityId)
+                {
+                    <a class="dropdown-item btn-xs" data-state="@((int) Status.ToCrossPlatform)" asp-controller="TestLab" asp-action="SwitchState" asp-route-id="@Model.Id" asp-route-statusId="@((int) Status.ToCrossPlatform)" asp-route-returnurl="@Context.Request.Path">To cross-platform</a>
+                }
+                break;
+            case Status.ToCrossPlatform:
+                <a class="dropdown-item btn-xs" asp-controller="TestLab" asp-action="SwitchState" asp-route-id="@Model.Id" asp-route-statusId="@((int) Status.ReadyForReview)" asp-route-returnurl="@Context.Request.Path">For review</a>
+                break;
+            case Status.ReadyForReview:
+                if (User.GetUserId() != Model.Assignee?.EntityId)
+                {
+                    <a class="dropdown-item btn-xs" data-state="@((int) Status.ReviewStarted)" asp-controller="TestLab" asp-action="SwitchState" asp-route-id="@Model.Id" asp-route-statusId="@((int) Status.ReviewStarted)" asp-route-returnurl="@Context.Request.Path">Review started</a>
+                }
+                break;
+            case Status.ReviewStarted:
+                if (User.GetUserId() == Model.Reviewer?.EntityId)
+                {
+                    <a class="dropdown-item btn-xs" data-state="@((int) Status.Finished)" asp-controller="TestLab" asp-action="SwitchState" asp-route-id="@Model.Id" asp-route-statusId="@((int) Status.Finished)" asp-route-returnurl="@Context.Request.Path">Finished</a>
+                    <a class="dropdown-item btn-xs" asp-controller="TestLab" asp-action="SwitchState" asp-route-id="@Model.Id" asp-route-statusId="@((int) Status.ChangesRequested)" asp-route-returnurl="@Context.Request.Path">Changes Requested</a>
+                }
+                break;
+            case Status.CannotAutomate:
+                <a class="dropdown-item btn-xs" data-state="@((int) Status.New)" asp-controller="TestLab" asp-action="SwitchState" asp-route-id="@Model.Id" asp-route-statusId="@((int) Status.New)" asp-route-returnurl="@Context.Request.Path">Reset status</a>
+                break;
+            case Status.Finished:
+                if (!Model.MergedDate.HasValue)
+                {
+                    <a class="dropdown-item btn-xs" data-state="0" asp-controller="TestLab" asp-action="Merge" asp-route-id="@Model.Id" asp-route-returnurl="@Context.Request.Path">Merged</a>
+                    if (Model.Reviewer?.EntityId == User.GetUserId())
+                    {
+                        <a class="dropdown-item btn-xs" asp-controller="TestLab" asp-action="SwitchState" asp-route-id="@Model.Id" asp-route-statusId="@((int) Status.ChangesRequested)" asp-route-returnurl="@Context.Request.Path">Changes Requested</a>
+                    }
+                }
+                break;
+            case Status.ChangesRequested:
+                if (Model.Assignee.EntityId==User.GetUserId())
+                {
+                    <a class="dropdown-item btn-xs" asp-controller="TestLab" asp-action="SwitchState" asp-route-id="@Model.Id" asp-route-statusId="@((int) Status.Fixed)" asp-route-returnurl="@Context.Request.Path">Fixed</a>
+                }
+                break;
+            case Status.Fixed:
+                if (User.GetUserId() == Model.Reviewer?.EntityId)
+                {
+                    <a class="dropdown-item btn-xs" asp-controller="TestLab" asp-action="SwitchState" asp-route-id="@Model.Id" asp-route-statusId="@((int) Status.Finished)" asp-route-returnurl="@Context.Request.Path">Finished</a>
+                    <a class="dropdown-item btn-xs" asp-controller="TestLab" asp-action="SwitchState" asp-route-id="@Model.Id" asp-route-statusId="@((int) Status.ChangesRequested)" asp-route-returnurl="@Context.Request.Path">Changes Requested</a>
+                }
+                break;
+        }
+
+    </div>
+</div>

@@ -1,0 +1,210 @@
+@using IrisEye.Core.Entities
+@using IrisEye.Data.Extensions
+@using IrisEye.Web.Enums
+@using Org.BouncyCastle.Security
+@model CoverageProgressViewModel
+
+@{
+    ViewBag.Title = "Coverage Progress";
+    Layout = "_Layout";
+}
+
+@{
+    var coveredTests = Model.IssuesCovered.Where(p => p.MergedDate.HasValue && !p.IsIssue).ToList();
+    var coveredIssues = Model.IssuesCovered.Where(p => p.MergedDate.HasValue && p.IsIssue).ToList();
+}
+
+<div class="container-fluid flex-grow-1 container-p-y">
+
+    <h4 class="d-flex justify-content-between align-items-center w-100 font-weight-bold py-3 mb-4">
+        <ol class="breadcrumb font-weight-bold m-0">
+            <li class="breadcrumb-item"><a asp-action="Index" asp-controller="TestLab">Test Lab</a></li>
+            <li class="breadcrumb-item active">Coverage progress</li>
+        </ol>
+        <div class="btn-group">
+            <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-expanded="false">@Model.StatisticsPeriod.GetDescription()</button>
+            <div class="dropdown-menu" x-placement="bottom-start" style="position: absolute; will-change: top, left; top: 38px; left: 0px;">
+                @foreach (var period in (StatisticsPeriod[]) Enum.GetValues(typeof(StatisticsPeriod)))
+                {
+                    <a class="dropdown-item" asp-controller="TestLab" asp-action="CoverageProgress" asp-route-periodId="@((int)period)">@period.GetDescription()</a>
+                }
+            </div>
+        </div>
+    </h4>
+    
+    <div class="row">
+        <div class="col-md">
+            <div class="card mb-4">
+                <h6 class="card-header">
+                    Covered Tests (@coveredTests.Count() - @Math.Round(Model.TestsVelocity, 2) per day)
+                </h6>
+                <div class="card-body">
+                    <table style="font-size: 12px" class="table table-sm table-striped">
+                        <thead>
+                        <tr>
+                            <th>Suite</th>
+                            <th>Test</th>
+                            <th>By</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var test in coveredTests)
+                        {
+                            <tr>
+                                <td><a asp-action="TestSuite" asp-route-id="@test.TestSuite.Id">@test.TestSuite?.Name</a></td>
+                                <td><a asp-action="TestCase" asp-route-id="@test.Id">@test.Name</a></td>
+                                <td><a asp-controller="Auth" asp-action="Profile" asp-route-id="@test.Assignee.Id">@test.Assignee?.Name</a></td>
+                            </tr>
+                        }
+
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-md">
+            <div class="card mb-4">
+                <h6 class="card-header">
+                    Covered Issues (@coveredIssues.Count - @Math.Round(Model.IssuesVelocity, 2) per day)
+                </h6>
+                <div class="card-body">
+                    <table style="font-size: 12px" class="table table-sm table-striped">
+                        <thead>
+                        <tr>
+                            <th>Suite</th>
+                            <th>Test</th>
+                            <th>By</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var issue in coveredIssues)
+
+                        {
+                            <tr>
+                                <td><a asp-action="TestSuite" asp-route-id="@issue.TestSuite.Id">@issue.TestSuite?.Name</a></td>
+                                <td><a asp-action="TestCase" asp-route-id="@issue.Id">@issue.Name</a></td>
+                                <td><a asp-controller="Auth" asp-action="Profile" asp-route-id="@issue.Assignee.Id">@issue.Assignee?.Name</a></td>
+                            </tr>
+                        }
+
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="w-100"></div>
+        <div class="col-md">
+            <div class="card mb-4">
+                <h6 class="card-header">
+                    Performance History
+                </h6>
+                <div class="card-body">
+                    <div id="flot-graph" style="height: 250px"></div>
+
+                </div>
+            </div>
+        </div>
+        <div class="col-md-12">
+            <div class="card mb-4">
+                <h6 class="card-header">
+                    Total Coverage
+                    <span class="text-light small font-weight-semibold mb-3">@Math.Round(Model.TotalCoverage, 2) %</span> 
+                    <div class="progress" style="height: 6px;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" style="width: @Math.Round(Model.TotalCoverage)%;"></div>
+                    </div>
+
+                </h6>
+                <div class="card-body">
+                    <table class="table table-bordered table-striped table-sm">
+                        <thead>
+                        <tr>
+                            <th>Feature</th>
+                            <th>Total</th>
+                            <th>Completed</th>
+                            <th>% Completed</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var suit in Model.AllTestSuits.OrderBy(p=>p.TestCases.Count(z=>z.MergedDate.HasValue || z.Status == Status.Closed) / (double)p.TestCases.Count))
+                        {
+                            <tr>
+                                @{
+                                    var total = suit.TestCases.Count;
+                                    var automated = suit.TestCases.Count(p => p.MergedDate.HasValue) + suit.TestCases.Count(p => p.Status == Status.Closed);
+                                    var progress = Math.Round(((automated / (double) total) * 100));
+                                }
+
+                                <td>
+                                    <a target="_blank" asp-action="TestSuite" asp-route-id="@suit.Id">@suit.Name</a>
+                                </td>
+                                <td>
+                                    @total
+                                </td>
+                                <td>
+                                    @automated
+                                </td>
+                                <td data-sort="@progress">
+                                <span class="text-light small font-weight-semibold mb-3">@progress %</span> 
+                                    <div class="progress" style="height: 6px;">
+                                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" style="width: @progress%;"></div>
+                                    </div>
+                                </td>
+                            </tr>
+                            
+                        }
+                        </tbody>
+                    </table>
+
+                </div>
+            </div>
+        </div>
+    </div>    
+</div>
+
+<script>
+    var gridColor = '#aaaaaa';
+    var gridBorder = '#eeeeee';
+    var legendBg = '#f5f5f5';
+    
+    async function getData() {
+        let response = await fetch("@Url.Action("GetProgress", "TestLab")");
+        let data = await response.json();
+        console.log(data);
+        $.plot($('#flot-graph'), data, {
+            series: {
+                shadowSize: 0,
+                lines: {
+                    show: true
+                },
+                points: {
+                    show: true,
+                    radius: 4
+                }
+            },
+
+            grid: {
+                color: gridColor,
+                borderColor: gridBorder,
+                borderWidth: 1,
+                hoverable: false,
+                clickable: true
+            },
+
+            xaxis: { mode: 'categories', tickColor: gridBorder },
+            yaxis: { tickColor: gridBorder },
+            legend: { backgroundColor: legendBg },
+            tooltip: { show: true },
+            colors: ["#607D8B", "#4CAF50"]
+        });
+    }
+
+    $(document).ready(function() {
+        getData();
+        $("table").dataTable({
+            order: []
+        });
+
+    });
+
+
+</script>
